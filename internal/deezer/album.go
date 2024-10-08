@@ -1,4 +1,4 @@
-package album
+package deezer
 
 import (
 	"encoding/json"
@@ -6,11 +6,23 @@ import (
 	"io"
 	"net/http"
 	"regexp"
-
-	"github.com/mathismqn/godeez/internal/models"
 )
 
-func GetDataByID(id string) (*models.Album, error) {
+type Album struct {
+	Data struct {
+		ID          string `json:"ALB_ID"`
+		Name        string `json:"ALB_TITLE"`
+		ArtistID    string `json:"ART_ID"`
+		ArtistName  string `json:"ART_NAME"`
+		CoverID     string `json:"ALB_PICTURE"`
+		ReleaseData string `json:"PHYSICAL_RELEASE_DATE"`
+	} `json:"DATA"`
+	Songs struct {
+		Data []Song `json:"data"`
+	} `json:"SONGS"`
+}
+
+func GetAlbumData(id string) (*Album, error) {
 	url := fmt.Sprintf("https://www.deezer.com/en/album/%s", id)
 
 	resp, err := http.Get(url)
@@ -30,7 +42,7 @@ func GetDataByID(id string) (*models.Album, error) {
 		return nil, fmt.Errorf("error parsing response")
 	}
 
-	var album models.Album
+	var album Album
 	err = json.Unmarshal([]byte(matches[1]), &album)
 	if err != nil {
 		return nil, err

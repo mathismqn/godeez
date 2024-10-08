@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mathismqn/godeez/internal/album"
-	"github.com/mathismqn/godeez/internal/song"
+	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/spf13/cobra"
 )
 
@@ -19,14 +18,14 @@ var downloadCmd = &cobra.Command{
 		}
 
 		for _, id := range args {
-			albumData, err := album.GetDataByID(id)
+			album, err := deezer.GetAlbumData(id)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not fetch album data: %v\n", err)
+				fmt.Fprintf(os.Stderr, "could not get album data: %v\n", err)
 				continue
 			}
 
-			for _, s := range albumData.Songs.Data {
-				media, err := song.GetMedia(s)
+			for _, song := range album.Songs.Data {
+				media, err := song.GetMediaData()
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "could not fetch media data: %v\n", err)
 					continue
