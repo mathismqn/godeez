@@ -27,11 +27,24 @@ var downloadCmd = &cobra.Command{
 			for _, song := range album.Songs.Data {
 				media, err := song.GetMediaData()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could not fetch media data: %v\n", err)
+					fmt.Fprintf(os.Stderr, "could not get media data: %v\n", err)
+					if err.Error() == "invalid license token" {
+						os.Exit(1)
+					}
 					continue
 				}
 
-				fmt.Println(media)
+				songTitle := song.Title
+				if song.Version != "" {
+					songTitle = fmt.Sprintf("%s %s", song.Title, song.Version)
+				}
+
+				filename := fmt.Sprintf("%s - %s.flac", song.ArtistName, songTitle)
+				err = media.Download(filename, song.ID)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "could not download song: %v\n", err)
+					continue
+				}
 			}
 		}
 	},

@@ -12,18 +12,24 @@ type Song struct {
 	ID         string `json:"SNG_ID"`
 	ArtistName string `json:"ART_NAME"`
 	Title      string `json:"SNG_TITLE"`
+	Version    string `json:"VERSION"`
 	TrackToken string `json:"TRACK_TOKEN"`
 }
 
+const LicenseToken = ""
+
 func (s *Song) GetMediaData() (*Media, error) {
-	licenseToken := ""
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]}],"track_tokens":["%s"]}`, licenseToken, s.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]}],"track_tokens":["%s"]}`, LicenseToken, s.TrackToken)
 
 	resp, err := http.Post("https://media.deezer.com/v1/get_url", "application/json", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusBadRequest {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
 
 	body, _ := io.ReadAll(resp.Body)
 
