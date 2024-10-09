@@ -16,18 +16,23 @@ var downloadCmd = &cobra.Command{
 			cmd.Help()
 			return
 		}
+		nAlbums := len(args)
 
-		for _, id := range args {
+		for i, id := range args {
+			fmt.Printf("[%d/%d] Getting data for album %s...", i+1, nAlbums, id)
 			album, err := deezer.GetAlbumData(id)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not get album data: %v\n", err)
+				fmt.Fprintf(os.Stderr, "\ncould not get album data: %v\n", err)
 				continue
 			}
+			fmt.Println(" done")
+			fmt.Printf("Starting download of %s", album.Data.Name)
 
 			for _, song := range album.Songs.Data {
+				fmt.Printf("\nDownloading %s...", song.Title)
 				media, err := song.GetMediaData()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could not get media data: %v\n", err)
+					fmt.Fprintf(os.Stderr, " could not get media data: %v\n", err)
 					if err.Error() == "invalid license token" {
 						os.Exit(1)
 					}
@@ -42,9 +47,10 @@ var downloadCmd = &cobra.Command{
 				filename := fmt.Sprintf("%s - %s.flac", song.ArtistName, songTitle)
 				err = media.Download(filename, song.ID)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could not download song: %v\n", err)
+					fmt.Fprintf(os.Stderr, " could not download song: %v\n", err)
 					continue
 				}
+				fmt.Print(" done")
 			}
 		}
 	},
