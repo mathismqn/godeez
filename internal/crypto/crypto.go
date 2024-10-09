@@ -3,21 +3,18 @@ package crypto
 import (
 	"crypto/cipher"
 	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 
+	"github.com/mathismqn/godeez/internal/config"
 	"golang.org/x/crypto/blowfish"
-)
-
-const (
-	SecretKey = ""
-	IV        = ""
 )
 
 func GetBlowfishKey(songID string) []byte {
 	hash := md5.Sum([]byte(songID))
 	hashHex := fmt.Sprintf("%x", hash)
 
-	key := []byte(SecretKey)
+	key := []byte(config.Cfg.SecretKey)
 	for i := 0; i < len(hash); i++ {
 		key[i] = key[i] ^ hashHex[i] ^ hashHex[i+16]
 	}
@@ -31,7 +28,12 @@ func DecryptBlowfish(data, key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	mode := cipher.NewCBCDecrypter(block, []byte(IV))
+	iv, err := hex.DecodeString(config.Cfg.IV)
+	if err != nil {
+		return nil, err
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
 	decrypted := make([]byte, len(data))
 	mode.CryptBlocks(decrypted, data)
 

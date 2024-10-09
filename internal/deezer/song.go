@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/mathismqn/godeez/internal/config"
 )
 
 type Song struct {
@@ -16,10 +18,8 @@ type Song struct {
 	TrackToken string `json:"TRACK_TOKEN"`
 }
 
-const LicenseToken = ""
-
 func (s *Song) GetMediaData() (*Media, error) {
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]}],"track_tokens":["%s"]}`, LicenseToken, s.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]}],"track_tokens":["%s"]}`, config.Cfg.LicenseToken, s.TrackToken)
 
 	resp, err := http.Post("https://media.deezer.com/v1/get_url", "application/json", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
