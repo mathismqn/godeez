@@ -37,7 +37,17 @@ type Source struct {
 const ChunkSize = 2048
 
 func (m *Media) Download(path, songID string) error {
+	if len(m.Data) == 0 || len(m.Data[0].Media) == 0 || len(m.Data[0].Media[0].Sources) == 0 {
+		return fmt.Errorf("no media sources found")
+	}
+
 	url := m.Data[0].Media[0].Sources[0].URL
+	for _, source := range m.Data[0].Media[0].Sources {
+		if source.Provider == "ak" {
+			url = source.URL
+			break
+		}
+	}
 
 	resp, err := http.Get(url)
 	if err != nil {
