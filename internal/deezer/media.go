@@ -36,7 +36,7 @@ type Source struct {
 
 const ChunkSize = 2048
 
-func (m *Media) Download(filename, songID string) error {
+func (m *Media) Download(path, songID string) error {
 	url := m.Data[0].Media[0].Sources[0].URL
 
 	resp, err := http.Get(url)
@@ -49,7 +49,7 @@ func (m *Media) Download(filename, songID string) error {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	file, err := os.Create(filename)
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}

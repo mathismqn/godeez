@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/spf13/cobra"
@@ -16,6 +17,8 @@ var downloadCmd = &cobra.Command{
 			cmd.Help()
 			return
 		}
+
+		output, _ := cmd.Flags().GetString("output")
 		nAlbums := len(args)
 
 		for i, id := range args {
@@ -26,6 +29,15 @@ var downloadCmd = &cobra.Command{
 				continue
 			}
 			fmt.Println(" done")
+
+			output = path.Join(output, fmt.Sprintf("%s - %s", album.Data.ArtistName, album.Data.Name))
+			if _, err := os.Stat(output); os.IsNotExist(err) {
+				if err := os.MkdirAll(output, 0755); err != nil {
+					fmt.Fprintf(os.Stderr, " could not create output directory: %v\n", err)
+					continue
+				}
+			}
+
 			fmt.Printf("Starting download of %s", album.Data.Name)
 
 			for _, song := range album.Songs.Data {
@@ -44,8 +56,8 @@ var downloadCmd = &cobra.Command{
 					songTitle = fmt.Sprintf("%s %s", song.Title, song.Version)
 				}
 
-				filename := fmt.Sprintf("%s - %s.flac", song.ArtistName, songTitle)
-				err = media.Download(filename, song.ID)
+				path := path.Join(output, fmt.Sprintf("%s - %s.flac", song.ArtistName, songTitle))
+				err = media.Download(path, song.ID)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, " could not download song: %v\n", err)
 					continue
@@ -58,4 +70,5 @@ var downloadCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(downloadCmd)
+	downloadCmd.Flags().StringP("output", "o", "", "output directory (default is current directory)")
 }
