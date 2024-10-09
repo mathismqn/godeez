@@ -18,9 +18,21 @@ type Song struct {
 	TrackToken string `json:"TRACK_TOKEN"`
 }
 
-func (s *Song) GetMediaData() (*Media, error) {
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]}],"track_tokens":["%s"]}`, config.Cfg.LicenseToken, s.TrackToken)
+func (s *Song) GetMediaData(quality string) (*Media, error) {
+	var formats string
 
+	switch quality {
+	case "mp3_128":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
+	case "mp3_320":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"}]`
+	case "flac":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"}]`
+	case "best":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
+	}
+
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, config.Cfg.LicenseToken, formats, s.TrackToken)
 	resp, err := http.Post("https://media.deezer.com/v1/get_url", "application/json", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
