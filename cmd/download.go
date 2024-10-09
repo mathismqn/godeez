@@ -32,30 +32,42 @@ var downloadCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		separator := "--------------------------------------------------"
 		for i, id := range args {
+			fmt.Println(separator)
 			fmt.Printf("[%d/%d] Getting data for album %s...", i+1, nAlbums, id)
+
 			album, err := deezer.GetAlbumData(id)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "\ncould not get album data: %v\n", err)
+				fmt.Printf("\r[%d/%d] Getting data for album %s... FAILED\n", i+1, nAlbums, id)
+				fmt.Fprintf(os.Stderr, "Error: could not get album data: %v\n", err)
 				continue
 			}
-			fmt.Println(" done")
+
+			fmt.Printf("\r[%d/%d] Getting data for album %s... DONE\n", i+1, nAlbums, id)
 
 			output = path.Join(output, fmt.Sprintf("%s - %s", album.Data.ArtistName, album.Data.Name))
 			if _, err := os.Stat(output); os.IsNotExist(err) {
 				if err := os.MkdirAll(output, 0755); err != nil {
-					fmt.Fprintf(os.Stderr, " could not create output directory: %v\n", err)
+					fmt.Fprintf(os.Stderr, "Error: could not create output directory: %v\n", err)
 					continue
 				}
 			}
 
-			fmt.Printf("Starting download of %s", album.Data.Name)
+			fmt.Printf("Starting download of album: %s\n", album.Data.Name)
 
 			for _, song := range album.Songs.Data {
-				fmt.Printf("\nDownloading %s...", song.Title)
+				songTitle := song.Title
+				if song.Version != "" {
+					songTitle = fmt.Sprintf("%s %s", song.Title, song.Version)
+				}
+
+				fmt.Printf("    Downloading %s...", songTitle)
+
 				media, err := song.GetMediaData(quality)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, " could not get media data: %v\n", err)
+					fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
+					fmt.Fprintf(os.Stderr, "Error: could not get media data: %v\n", err)
 					if err.Error() == "invalid license token" {
 						os.Exit(1)
 					}
@@ -63,7 +75,8 @@ var downloadCmd = &cobra.Command{
 				}
 
 				if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
-					fmt.Fprintf(os.Stderr, " could not get media sources\n")
+					fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
+					fmt.Fprintf(os.Stderr, "Error: could not get media sources\n")
 					continue
 				}
 
@@ -74,24 +87,24 @@ var downloadCmd = &cobra.Command{
 						break
 					}
 				}
-				songTitle := song.Title
-				if song.Version != "" {
-					songTitle = fmt.Sprintf("%s %s", song.Title, song.Version)
-				}
 				ext := "mp3"
 				if media.Data[0].Media[0].Format == "FLAC" {
 					ext = "flac"
 				}
 
-				path := path.Join(output, fmt.Sprintf("%s - %s.%s", song.ArtistName, songTitle, ext))
-				err = media.Download(url, path, song.ID)
+				filePath := path.Join(output, fmt.Sprintf("%s - %s.%s", song.ArtistName, songTitle, ext))
+				err = media.Download(url, filePath, song.ID)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, " could not download song: %v\n", err)
+					fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
+					fmt.Fprintf(os.Stderr, "Error: could not download song: %v\n", err)
 					continue
 				}
-				fmt.Print(" done")
+				fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
 			}
 		}
+
+		fmt.Println(separator)
+		fmt.Println("All downloads completed")
 	},
 }
 
