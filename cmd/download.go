@@ -93,7 +93,7 @@ var downloadCmd = &cobra.Command{
 					ext = "flac"
 				}
 
-				filePath := path.Join(output, fmt.Sprintf("%s - %s.%s", strings.Join(song.Contributors.MainArtists, ", "), songTitle, ext))
+				filePath := path.Join(output, fmt.Sprintf("%s. %s - %s.%s", song.TrackNumber, songTitle, strings.Join(song.Contributors.MainArtists, ", "), ext))
 				err = media.Download(url, filePath, song.ID)
 				if err != nil {
 					fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
