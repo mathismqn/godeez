@@ -51,3 +51,18 @@ func GetAlbumData(id string) (*Album, error) {
 
 	return &album, nil
 }
+
+func (a *Album) GetCoverImage() ([]byte, error) {
+	url := fmt.Sprintf("https://e-cdn-images.dzcdn.net/images/cover/%s/500x500-000000-80-0-0.jpg", a.Data.CoverID)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
+}

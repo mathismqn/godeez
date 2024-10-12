@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mathismqn/godeez/internal/deezer"
+	"github.com/mathismqn/godeez/internal/tags"
 	"github.com/spf13/cobra"
 )
 
@@ -102,7 +103,7 @@ var downloadCmd = &cobra.Command{
 				}
 				fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
 
-				if err := deezer.AddTags(album, song, filePath); err != nil {
+				if err := tags.Add(album, song, filePath); err != nil {
 					fmt.Fprintf(os.Stderr, "Error: could not add tags to song: %v\n", err)
 				}
 			}
