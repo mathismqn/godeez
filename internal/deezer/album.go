@@ -10,15 +10,16 @@ import (
 
 type Album struct {
 	Data struct {
-		ID          string `json:"ALB_ID"`
-		Name        string `json:"ALB_TITLE"`
-		ArtistID    string `json:"ART_ID"`
-		ArtistName  string `json:"ART_NAME"`
-		CoverID     string `json:"ALB_PICTURE"`
-		ReleaseData string `json:"PHYSICAL_RELEASE_DATE"`
+		Name                string `json:"ALB_TITLE"`
+		Artist              string `json:"ART_NAME"`
+		CoverID             string `json:"ALB_PICTURE"`
+		OriginalReleaseDate string `json:"ORIGINAL_RELEASE_DATE"`
+		PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
+		Label               string `json:"LABEL_NAME"`
+		ProducerLine        string `json:"PRODUCER_LINE"`
 	} `json:"DATA"`
 	Songs struct {
-		Data []Song `json:"data"`
+		Data []*Song `json:"data"`
 	} `json:"SONGS"`
 }
 

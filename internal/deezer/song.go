@@ -11,11 +11,21 @@ import (
 )
 
 type Song struct {
-	ID         string `json:"SNG_ID"`
-	ArtistName string `json:"ART_NAME"`
-	Title      string `json:"SNG_TITLE"`
-	Version    string `json:"VERSION"`
-	TrackToken string `json:"TRACK_TOKEN"`
+	ID           string `json:"SNG_ID"`
+	Artist       string `json:"ART_NAME"`
+	Title        string `json:"SNG_TITLE"`
+	Version      string `json:"VERSION"`
+	Contributors struct {
+		MainArtists []string `json:"main_artist"`
+		Composers   []string `json:"composer"`
+		Authors     []string `json:"author"`
+	} `json:"SNG_CONTRIBUTORS"`
+	Duration       string `json:"DURATION"`
+	Gain           string `json:"GAIN"`
+	ISRC           string `json:"ISRC"`
+	ExplicitLyrics string `json:"EXPLICIT_LYRICS"`
+	TrackNumber    string `json:"TRACK_NUMBER"`
+	TrackToken     string `json:"TRACK_TOKEN"`
 }
 
 func (s *Song) GetMediaData(quality string) (*Media, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/spf13/cobra"
@@ -46,7 +47,7 @@ var downloadCmd = &cobra.Command{
 
 			fmt.Printf("\r[%d/%d] Getting data for album %s... DONE\n", i+1, nAlbums, id)
 
-			output = path.Join(output, fmt.Sprintf("%s - %s", album.Data.ArtistName, album.Data.Name))
+			output = path.Join(output, fmt.Sprintf("%s - %s", album.Data.Artist, album.Data.Name))
 			if _, err := os.Stat(output); os.IsNotExist(err) {
 				if err := os.MkdirAll(output, 0755); err != nil {
 					fmt.Fprintf(os.Stderr, "Error: could not create output directory: %v\n", err)
@@ -92,7 +93,7 @@ var downloadCmd = &cobra.Command{
 					ext = "flac"
 				}
 
-				filePath := path.Join(output, fmt.Sprintf("%s - %s.%s", song.ArtistName, songTitle, ext))
+				filePath := path.Join(output, fmt.Sprintf("%s - %s.%s", strings.Join(song.Contributors.MainArtists, ", "), songTitle, ext))
 				err = media.Download(url, filePath, song.ID)
 				if err != nil {
 					fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
@@ -100,6 +101,10 @@ var downloadCmd = &cobra.Command{
 					continue
 				}
 				fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
+
+				if err := deezer.AddTags(album, song, filePath); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: could not add tags to song: %v\n", err)
+				}
 			}
 		}
 
