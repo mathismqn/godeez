@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+
+	"github.com/flytam/filenamify"
 )
 
 type Album struct {
@@ -33,7 +35,12 @@ func (a *Album) GetSongs() []*Song {
 }
 
 func (a *Album) GetOutputPath(outputDir string) string {
-	return path.Join(outputDir, fmt.Sprintf("%s - %s", a.Data.Artist, a.Data.Title))
+	base := fmt.Sprintf("%s - %s", a.Data.Artist, a.Data.Title)
+	base, _ = filenamify.Filenamify(base, filenamify.Options{})
+	outputPath := path.Join(outputDir, base)
+	outputPath, _ = filenamify.Filenamify(outputPath, filenamify.Options{})
+
+	return outputPath
 }
 
 func (a *Album) GetTitle() string {

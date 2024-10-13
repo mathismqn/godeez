@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/flytam/filenamify"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/tags"
 	"github.com/spf13/cobra"
@@ -128,7 +129,10 @@ func downloadContent(contentType string, args []string) {
 				trackNumber = song.TrackNumber + "."
 			}
 
-			filePath := path.Join(output, fmt.Sprintf("%s %s - %s.%s", trackNumber, songTitle, strings.Join(song.Contributors.MainArtists, ", "), ext))
+			fileName := fmt.Sprintf("%s %s - %s.%s", trackNumber, songTitle, strings.Join(song.Contributors.MainArtists, ", "), ext)
+			fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+			filePath := path.Join(output, fileName)
+
 			err = media.Download(url, filePath, song.ID)
 			if err != nil {
 				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
