@@ -15,6 +15,7 @@ type Song struct {
 	Artist       string `json:"ART_NAME"`
 	Title        string `json:"SNG_TITLE"`
 	Version      string `json:"VERSION"`
+	Cover        string `json:"ALB_PICTURE"`
 	Contributors struct {
 		MainArtists []string `json:"main_artist"`
 		Composers   []string `json:"composer"`
@@ -69,4 +70,19 @@ func (s *Song) GetMediaData(quality string) (*Media, error) {
 	}
 
 	return &media, nil
+}
+
+func (s *Song) GetCoverImage() ([]byte, error) {
+	url := fmt.Sprintf("https://e-cdn-images.dzcdn.net/images/cover/%s/500x500-000000-80-0-0.jpg", s.Cover)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return io.ReadAll(resp.Body)
 }
