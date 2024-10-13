@@ -9,7 +9,9 @@ import (
 
 type Playlist struct {
 	Data struct {
-		Title string `json:"TITLE"`
+		Title     string `json:"TITLE"`
+		Status    int    `json:"STATUS"`
+		CollabKey string `json:"COLLAB_KEY"`
 	} `json:"DATA"`
 	Songs struct {
 		Data []*Song `json:"data"`

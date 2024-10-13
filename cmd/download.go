@@ -71,6 +71,12 @@ func downloadContent(contentType string, args []string) {
 				fmt.Fprintf(os.Stderr, "Error: could not get playlist data: %v\n", err)
 				continue
 			}
+			if playlist.Data.Status == 1 && playlist.Data.CollabKey == "" {
+				fmt.Printf("\r[%d/%d] Getting data for playlist %s... FAILED\n", i+1, nArgs, id)
+				fmt.Fprintf(os.Stderr, "Error: playlist is private and no valid arl cookie was provided\n")
+				continue
+			}
+
 			resource = playlist
 			songs = playlist.GetSongs()
 		}

@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+
+	"github.com/mathismqn/godeez/internal/config"
 )
 
 type Resource interface {
@@ -18,7 +20,20 @@ type Resource interface {
 func GetData(r Resource, id string) error {
 	url := r.GetURL(id)
 
-	resp, err := http.Get(url)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	if config.Cfg.ArlCookie != "" {
+		req.AddCookie(&http.Cookie{
+			Name:  "arl",
+			Value: config.Cfg.ArlCookie,
+		})
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
