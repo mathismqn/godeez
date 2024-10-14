@@ -68,6 +68,13 @@ func (s *Song) GetMediaData(quality string) (*Media, error) {
 
 		return nil, fmt.Errorf("%s", media.Errors[0].Message)
 	}
+	if len(media.Data) > 0 && len(media.Data[0].Errors) > 0 {
+		if media.Data[0].Errors[0].Code == 2002 {
+			return nil, fmt.Errorf("invalid track token")
+		}
+
+		return nil, fmt.Errorf("%s", media.Data[0].Errors[0].Message)
+	}
 
 	return &media, nil
 }

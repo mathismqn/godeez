@@ -17,6 +17,7 @@ type Media struct {
 			Format  string   `json:"format"`
 			Sources []Source `json:"sources"`
 		}
+		Errors []MediaError `json:"errors"`
 	} `json:"data"`
 }
 
