@@ -21,7 +21,7 @@ var downloadCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(downloadCmd)
+	RootCmd.AddCommand(downloadCmd)
 	downloadCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default is current directory)")
 	downloadCmd.PersistentFlags().StringVarP(&quality, "quality", "q", "", "download quality [mp3_128, mp3_320, flac, best] (default is best)")
 }
@@ -38,7 +38,7 @@ func validateInput() {
 		"best":    true,
 	}
 	if !validQualities[quality] {
-		fmt.Fprintf(os.Stderr, "invalid quality option: %s\n", quality)
+		fmt.Fprintf(os.Stderr, "Error: invalid quality option: %s\n", quality)
 		os.Exit(1)
 	}
 }
