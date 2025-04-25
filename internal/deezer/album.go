@@ -40,7 +40,6 @@ func (a *Album) GetOutputPath(outputDir string) string {
 	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})
 	outputPath := path.Join(outputDir, base)
-	outputPath, _ = filenamify.Filenamify(outputPath, filenamify.Options{})
 
 	return outputPath
 }

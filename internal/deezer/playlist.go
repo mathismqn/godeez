@@ -35,7 +35,6 @@ func (p *Playlist) GetSongs() []*Song {
 func (p *Playlist) GetOutputPath(outputDir string) string {
 	p.Results.Data.Title, _ = filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
 	outputPath := path.Join(outputDir, p.Results.Data.Title)
-	outputPath, _ = filenamify.Filenamify(outputPath, filenamify.Options{})
 
 	return outputPath
 }

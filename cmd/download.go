@@ -10,6 +10,7 @@ import (
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/tags"
+	"github.com/mathismqn/godeez/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -23,11 +24,31 @@ var downloadCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(downloadCmd)
-	downloadCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default is current directory)")
+	downloadCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default is $HOME/Music/GoDeez)")
 	downloadCmd.PersistentFlags().StringVarP(&quality, "quality", "q", "", "download quality [mp3_128, mp3_320, flac, best] (default is best)")
 }
 
 func validateInput() {
+	if outputDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: could not get home directory: %v\n", err)
+			os.Exit(1)
+		}
+
+		musicDir := path.Join(homeDir, "Music")
+		if err := utils.EnsureDir(musicDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: could not create music directory: %v\n", err)
+			os.Exit(1)
+		}
+
+		outputDir = path.Join(musicDir, "GoDeez")
+		if err := utils.EnsureDir(outputDir); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: could not create GoDeez directory: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	if quality == "" {
 		quality = "best"
 	}
@@ -91,11 +112,9 @@ func downloadContent(contentType string, args []string) {
 		fmt.Printf("\r[%d/%d] Getting data for %s %s... DONE\n", i+1, nArgs, contentType, id)
 
 		output := resource.GetOutputPath(outputDir)
-		if _, err := os.Stat(output); os.IsNotExist(err) {
-			if err := os.MkdirAll(output, 0755); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: could not create output directory: %v\n", err)
-				continue
-			}
+		if err := utils.EnsureDir(output); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: could not create output directory: %v\n", err)
+			continue
 		}
 
 		title := resource.GetTitle()
