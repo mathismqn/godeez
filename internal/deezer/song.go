@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/mathismqn/godeez/internal/config"
 )
 
@@ -92,4 +96,83 @@ func (s *Song) GetCoverImage() ([]byte, error) {
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func (s *Song) GetTempoAndKey() (string, string, error) {
+	reqUrl := "https://songbpm.com/searches"
+	values := url.Values{}
+	values.Add("query", fmt.Sprintf("%s %s %s", s.Artist, s.Title, s.Version))
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBufferString(values.Encode()))
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "https://songbpm.com")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	var key, bpm string
+	var found bool
+
+	doc.Find("a.flex.flex-col").Each(func(i int, selection *goquery.Selection) {
+		if found {
+			return
+		}
+
+		if strings.Contains(selection.Text(), s.Title) && strings.Contains(selection.Text(), s.Artist) {
+			foundArtist := selection.Find("p.text-sm.font-light.uppercase").Text()
+			foundTitle := selection.Find("p.pr-2.text-lg").Text()
+
+			if strings.Contains(strings.ToLower(foundArtist), strings.ToLower(s.Artist)) && strings.Contains(strings.ToLower(foundTitle), strings.ToLower(s.Title)) {
+				durationStr := strings.TrimSpace(selection.Find("div.flex-1.flex-col.items-center").Eq(1).Find("span.text-2xl").Text())
+				parts := strings.Split(durationStr, ":")
+				if len(parts) != 2 {
+					return
+				}
+				minutes, err := strconv.Atoi(parts[0])
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				seconds, err := strconv.Atoi(parts[1])
+				if err != nil {
+					return
+				}
+
+				foundDuration := minutes*60 + seconds
+				duration, err := strconv.Atoi(s.Duration)
+				if err != nil {
+					return
+				}
+
+				if foundDuration > (duration-2) || foundDuration < (duration+2) {
+					key = selection.Find("div.flex-1.flex-col.items-center").Eq(0).Find("span.text-2xl").Text()
+					bpm = selection.Find("div.flex-1.flex-col.items-center").Eq(2).Find("span.text-2xl").Text()
+
+					found = true
+				}
+			}
+		}
+	})
+
+	if !found {
+		return "", "", fmt.Errorf("no data found")
+	}
+
+	return bpm, key, nil
 }

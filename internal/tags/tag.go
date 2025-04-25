@@ -10,7 +10,7 @@ import (
 )
 
 type Tagger interface {
-	AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path string) error
+	AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error
 }
 
 func NewTagger(filePath string) (Tagger, error) {
@@ -38,7 +38,7 @@ func NewTagger(filePath string) (Tagger, error) {
 	return &FLACTagger{File: file, Cmts: cmts, Index: idx}, nil
 }
 
-func AddTags(resource deezer.Resource, song *deezer.Song, filePath string) error {
+func AddTags(resource deezer.Resource, song *deezer.Song, filePath, tempo, key string) error {
 	tagger, err := NewTagger(filePath)
 	if err != nil {
 		return err
@@ -48,5 +48,5 @@ func AddTags(resource deezer.Resource, song *deezer.Song, filePath string) error
 		return err
 	}
 
-	return tagger.AddTags(resource, song, cover, filePath)
+	return tagger.AddTags(resource, song, cover, filePath, tempo, key)
 }

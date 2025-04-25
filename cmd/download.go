@@ -147,7 +147,15 @@ func downloadContent(contentType string, args []string) {
 			}
 			fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
 
-			if err := tags.AddTags(resource, song, filePath); err != nil {
+			tempo, key, err := song.GetTempoAndKey()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: could not get tempo and key: %v\n", err)
+			} else {
+				fmt.Printf("        Tempo: %s\n", tempo)
+				fmt.Printf("        Key: %s\n", key)
+			}
+
+			if err := tags.AddTags(resource, song, filePath, tempo, key); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: could not add tags to song: %v\n", err)
 			}
 		}

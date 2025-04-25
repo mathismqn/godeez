@@ -13,7 +13,7 @@ type ID3v2Tagger struct {
 	Tag *id3v2.Tag
 }
 
-func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path string) error {
+func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
 	defer t.Tag.Close()
 
 	duration, _ := strconv.Atoi(song.Duration)
@@ -36,6 +36,9 @@ func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover
 	t.addTag("TLEN", song.Duration)
 	t.addTXXXTag("GAIN", song.Gain)
 	t.addTXXXTag("ISRC", song.ISRC)
+
+	t.addTag("TBPM", tempo)
+	t.addTag("TKEY", key)
 
 	frame := id3v2.PictureFrame{
 		Encoding:    t.Tag.DefaultEncoding(),

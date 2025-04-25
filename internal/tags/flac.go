@@ -16,7 +16,7 @@ type FLACTagger struct {
 	Index int
 }
 
-func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path string) error {
+func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
 	if album, ok := resource.(*deezer.Album); ok {
 		dateParts := strings.Split(album.Data.PhysicalReleaseDate, "-")
 		if len(dateParts) == 3 {
@@ -38,6 +38,10 @@ func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover 
 	t.addTag("LYRICIST", strings.Join(song.Contributors.Authors, ", "))
 	t.addTag("REPLAYGAIN_TRACK_GAIN", song.Gain)
 	t.addTag("ISRC", song.ISRC)
+
+	t.addTag("BPM", tempo)
+	t.addTag("KEY", key)
+	t.addTag("INITIALKEY", key)
 
 	cmtsmeta := t.Cmts.Marshal()
 	if t.Index > 0 {
