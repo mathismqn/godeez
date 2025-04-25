@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -98,41 +99,53 @@ func (s *Song) GetCoverImage() ([]byte, error) {
 }
 
 func (s *Song) GetTempoAndKey() (string, string, error) {
-	reqUrl := "https://songbpm.com/searches"
+	client := &http.Client{}
+	link, err := s.findSongLink(client)
+	if err != nil {
+		return "", "", err
+	}
+
+	html, err := fetchPage(client, link)
+	if err != nil {
+		return "", "", err
+	}
+
+	return parseBPMAndKey(html)
+}
+
+func (s *Song) findSongLink(client *http.Client) (string, error) {
+	rootUrl := "https://songbpm.com"
+	reqUrl := rootUrl + "/searches"
+
 	values := url.Values{}
 	values.Add("query", fmt.Sprintf("%s %s %s", s.Artist, s.Title, s.Version))
 
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", reqUrl, bytes.NewBufferString(values.Encode()))
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Origin", "https://songbpm.com")
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
-	var key, bpm string
 	var found bool
+	var link string
 
 	doc.Find("a.flex.flex-col").Each(func(i int, selection *goquery.Selection) {
-		if found {
-			return
-		}
-
 		if strings.Contains(selection.Text(), s.Title) && strings.Contains(selection.Text(), s.Artist) {
 			foundArtist := selection.Find("p.text-sm.font-light.uppercase").Text()
 			foundTitle := selection.Find("p.pr-2.text-lg").Text()
@@ -160,17 +173,74 @@ func (s *Song) GetTempoAndKey() (string, string, error) {
 				}
 
 				if foundDuration > (duration-2) || foundDuration < (duration+2) {
-					key = selection.Find("div.flex-1.flex-col.items-center").Eq(0).Find("span.text-2xl").Text()
-					bpm = selection.Find("div.flex-1.flex-col.items-center").Eq(2).Find("span.text-2xl").Text()
-
+					link = selection.AttrOr("href", "")
 					found = true
+
+					return
 				}
 			}
 		}
 	})
 
 	if !found {
+		return "", fmt.Errorf("no data found")
+	}
+
+	return rootUrl + link, nil
+}
+
+func fetchPage(client *http.Client, link string) (string, error) {
+	req, err := http.NewRequest("GET", link, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+
+	return string(body), nil
+}
+
+func parseBPMAndKey(html string) (string, string, error) {
+	bpmRegex := regexp.MustCompile(`tempo of <span[^>]*>(\d+) BPM`)
+	bpmMatch := bpmRegex.FindStringSubmatch(html)
+
+	keyRegex := regexp.MustCompile(`with a <span[^>]*>([A-G](?:♯|#|♭|b)?(?:/[A-G](?:♯|#|♭|b)?)?)</span> key`)
+	keyMatch := keyRegex.FindStringSubmatch(html)
+
+	modeRegex := regexp.MustCompile(`a  <span[^>]*>([a-z]+)</span> mode`)
+	modeMatch := modeRegex.FindStringSubmatch(html)
+
+	if len(bpmMatch) != 2 || len(keyMatch) != 2 || len(modeMatch) != 2 {
 		return "", "", fmt.Errorf("no data found")
+	}
+
+	isMinor := false
+	bpm := bpmMatch[1]
+	key := keyMatch[1]
+	if modeMatch[1] == "minor" {
+		isMinor = true
+	}
+
+	if strings.Contains(key, "/") {
+		parts := strings.Split(key, "/")
+		key = parts[0]
+	}
+
+	key = strings.ReplaceAll(key, "♯", "#")
+	key = strings.ReplaceAll(key, "♭", "b")
+
+	if isMinor && !strings.HasSuffix(key, "m") {
+		key += "m"
 	}
 
 	return bpm, key, nil
