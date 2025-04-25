@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/flytam/filenamify"
+	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/tags"
 	"github.com/spf13/cobra"
@@ -44,6 +45,12 @@ func validateInput() {
 }
 
 func downloadContent(contentType string, args []string) {
+	session, err := deezer.Authenticate(config.Cfg.ArlCookie)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: could not authenticate: %v\n", err)
+		os.Exit(1)
+	}
+
 	nArgs := len(args)
 	separator := "--------------------------------------------------"
 
@@ -57,7 +64,7 @@ func downloadContent(contentType string, args []string) {
 		switch contentType {
 		case "album":
 			album := &deezer.Album{}
-			if err := deezer.GetData(album, id); err != nil {
+			if err := session.GetData(album, id); err != nil {
 				fmt.Printf("\r[%d/%d] Getting data for album %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: could not get album data: %v\n", err)
 				continue
@@ -66,12 +73,12 @@ func downloadContent(contentType string, args []string) {
 			songs = album.GetSongs()
 		case "playlist":
 			playlist := &deezer.Playlist{}
-			if err := deezer.GetData(playlist, id); err != nil {
+			if err := session.GetData(playlist, id); err != nil {
 				fmt.Printf("\r[%d/%d] Getting data for playlist %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: could not get playlist data: %v\n", err)
 				continue
 			}
-			if playlist.Data.Status == 1 && playlist.Data.CollabKey == "" {
+			if playlist.Results.Data.Status == 1 && playlist.Results.Data.CollabKey == "" {
 				fmt.Printf("\r[%d/%d] Getting data for playlist %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: playlist is private and no valid arl cookie was provided\n")
 				continue
@@ -102,7 +109,7 @@ func downloadContent(contentType string, args []string) {
 
 			fmt.Printf("    Downloading %s...", songTitle)
 
-			media, err := song.GetMediaData(quality)
+			media, err := song.GetMediaData(session.LicenseToken, quality)
 			if err != nil {
 				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
 				fmt.Fprintf(os.Stderr, "Error: could not get media data: %v\n", err)
@@ -149,14 +156,14 @@ func downloadContent(contentType string, args []string) {
 
 			tempo, key, err := song.GetTempoAndKey()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: could not get tempo and key: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Warning: could not get tempo and key: %v\n", err)
 			} else {
 				fmt.Printf("        Tempo: %s\n", tempo)
 				fmt.Printf("        Key: %s\n", key)
 			}
 
 			if err := tags.AddTags(resource, song, filePath, tempo, key); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: could not add tags to song: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Warning: could not add tags to song: %v\n", err)
 			}
 		}
 	}

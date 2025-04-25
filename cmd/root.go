@@ -39,7 +39,7 @@ func initConfig() {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			fmt.Printf("Config file not found, creating one at %s\n", path)
 
-			content := []byte("arl_cookie = ''\nlicense_token = ''\nsecret_key = ''\niv = '0001020304050607'\n")
+			content := []byte("arl_cookie = ''\nsecret_key = ''\niv = '0001020304050607'\n")
 			if err := os.WriteFile(path, content, 0644); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: could not create config file: %v\n", err)
 				os.Exit(1)
@@ -63,10 +63,6 @@ func initConfig() {
 		os.Exit(1)
 	}
 
-	if cfg.LicenseToken == "" {
-		fmt.Fprintln(os.Stderr, "Error: license_token is not set in config file")
-		os.Exit(1)
-	}
 	if cfg.SecretKey == "" {
 		fmt.Fprintln(os.Stderr, "Error: secret_key is not set in config file")
 		os.Exit(1)

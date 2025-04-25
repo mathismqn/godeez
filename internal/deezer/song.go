@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/mathismqn/godeez/internal/config"
 )
 
 type Song struct {
@@ -32,7 +31,7 @@ type Song struct {
 	TrackToken  string `json:"TRACK_TOKEN"`
 }
 
-func (s *Song) GetMediaData(quality string) (*Media, error) {
+func (s *Song) GetMediaData(licenseToken, quality string) (*Media, error) {
 	var formats string
 
 	switch quality {
@@ -46,7 +45,7 @@ func (s *Song) GetMediaData(quality string) (*Media, error) {
 		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
 	}
 
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, config.Cfg.LicenseToken, formats, s.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, licenseToken, formats, s.TrackToken)
 	resp, err := http.Post("https://media.deezer.com/v1/get_url", "application/json", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err

@@ -9,21 +9,23 @@ import (
 )
 
 type Album struct {
-	Data struct {
-		Title               string `json:"ALB_TITLE"`
-		Artist              string `json:"ART_NAME"`
-		OriginalReleaseDate string `json:"ORIGINAL_RELEASE_DATE"`
-		PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
-		Label               string `json:"LABEL_NAME"`
-		ProducerLine        string `json:"PRODUCER_LINE"`
-	} `json:"DATA"`
-	Songs struct {
-		Data []*Song `json:"data"`
-	} `json:"SONGS"`
+	Results struct {
+		Data struct {
+			Title               string `json:"ALB_TITLE"`
+			Artist              string `json:"ART_NAME"`
+			OriginalReleaseDate string `json:"ORIGINAL_RELEASE_DATE"`
+			PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
+			Label               string `json:"LABEL_NAME"`
+			ProducerLine        string `json:"PRODUCER_LINE"`
+		} `json:"DATA"`
+		Songs struct {
+			Data []*Song `json:"data"`
+		} `json:"SONGS"`
+	} `json:"results"`
 }
 
-func (a *Album) GetURL(id string) string {
-	return "https://www.deezer.com/en/album/" + id
+func (a *Album) GetType() string {
+	return "Album"
 }
 
 func (a *Album) UnmarshalData(data []byte) error {
@@ -31,11 +33,11 @@ func (a *Album) UnmarshalData(data []byte) error {
 }
 
 func (a *Album) GetSongs() []*Song {
-	return a.Songs.Data
+	return a.Results.Songs.Data
 }
 
 func (a *Album) GetOutputPath(outputDir string) string {
-	base := fmt.Sprintf("%s - %s", a.Data.Artist, a.Data.Title)
+	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})
 	outputPath := path.Join(outputDir, base)
 	outputPath, _ = filenamify.Filenamify(outputPath, filenamify.Options{})
@@ -44,5 +46,5 @@ func (a *Album) GetOutputPath(outputDir string) string {
 }
 
 func (a *Album) GetTitle() string {
-	return a.Data.Title
+	return a.Results.Data.Title
 }

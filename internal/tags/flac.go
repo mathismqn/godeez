@@ -18,17 +18,17 @@ type FLACTagger struct {
 
 func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
 	if album, ok := resource.(*deezer.Album); ok {
-		dateParts := strings.Split(album.Data.PhysicalReleaseDate, "-")
+		dateParts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-")
 		if len(dateParts) == 3 {
-			album.Data.PhysicalReleaseDate = dateParts[0]
+			album.Results.Data.PhysicalReleaseDate = dateParts[0]
 		}
 
-		t.addTag("ALBUM", album.Data.Title)
-		t.addTag("ALBUMARTIST", album.Data.Artist)
-		t.addTag("PUBLISHER", album.Data.Label)
-		t.addTag("ORIGINALDATE", album.Data.OriginalReleaseDate)
-		t.addTag("DATE", album.Data.PhysicalReleaseDate)
-		t.addTag("COMMENT", album.Data.ProducerLine)
+		t.addTag("ALBUM", album.Results.Data.Title)
+		t.addTag("ALBUMARTIST", album.Results.Data.Artist)
+		t.addTag("PUBLISHER", album.Results.Data.Label)
+		t.addTag("ORIGINALDATE", album.Results.Data.OriginalReleaseDate)
+		t.addTag("DATE", album.Results.Data.PhysicalReleaseDate)
+		t.addTag("COMMENT", album.Results.Data.ProducerLine)
 		t.addTag("TRACKNUMBER", song.TrackNumber)
 	}
 

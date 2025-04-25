@@ -20,12 +20,12 @@ func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover
 	song.Duration = fmt.Sprintf("%d", duration*1000)
 
 	if album, ok := resource.(*deezer.Album); ok {
-		t.addTag("TALB", album.Data.Title)
-		t.addTag("TPE2", album.Data.Artist)
-		t.addTag("TPUB", album.Data.Label)
-		t.addTag("TDOR", album.Data.OriginalReleaseDate)
-		t.addTag("TYER", album.Data.PhysicalReleaseDate)
-		t.addTag("COMM", album.Data.ProducerLine)
+		t.addTag("TALB", album.Results.Data.Title)
+		t.addTag("TPE2", album.Results.Data.Artist)
+		t.addTag("TPUB", album.Results.Data.Label)
+		t.addTag("TDOR", album.Results.Data.OriginalReleaseDate)
+		t.addTag("TYER", album.Results.Data.PhysicalReleaseDate)
+		t.addTag("COMM", album.Results.Data.ProducerLine)
 		t.addTag("TRCK", song.TrackNumber)
 	}
 

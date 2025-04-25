@@ -1,57 +1,65 @@
 package deezer
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
-
-	"github.com/mathismqn/godeez/internal/config"
+	"strings"
 )
 
 type Resource interface {
-	GetURL(id string) string
+	GetType() string
 	UnmarshalData(data []byte) error
 	GetSongs() []*Song
 	GetOutputPath(outputDir string) string
 	GetTitle() string
 }
 
-func GetData(r Resource, id string) error {
-	url := r.GetURL(id)
-
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
+func (s *Session) GetData(r Resource, id string) error {
+	payload := map[string]interface{}{
+		"nb":          10000,
+		"start":       0,
+		"playlist_id": id,
+		"alb_id":      id,
+		"lang":        "en",
+		"tab":         0,
+		"tags":        true,
+		"header":      true,
+	}
+	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	if config.Cfg.ArlCookie != "" {
-		req.AddCookie(&http.Cookie{
-			Name:  "arl",
-			Value: config.Cfg.ArlCookie,
-		})
+	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", r.GetType(), s.APIToken)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := s.Client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("resource not found")
-		}
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	body, _ := io.ReadAll(resp.Body)
-	re := regexp.MustCompile(`window\.__DZR_APP_STATE__ = (\{.*\})`)
-	matches := re.FindStringSubmatch(string(body))
-	if len(matches) != 2 {
-		return fmt.Errorf("error parsing response")
+
+	if strings.Contains(string(body), `"DATA_ERROR":"playlist::getData"`) {
+		return fmt.Errorf("invalid playlist ID")
+	}
+	if strings.Contains(string(body), `"DATA_ERROR":"album::getData"`) {
+		return fmt.Errorf("invalid album ID")
+	}
+	if strings.Contains(string(body), `"results":{}`) {
+		return fmt.Errorf("unexpected response")
 	}
 
-	return r.UnmarshalData([]byte(matches[1]))
+	return r.UnmarshalData(body)
 }
