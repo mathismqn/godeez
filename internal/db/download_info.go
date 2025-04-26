@@ -12,6 +12,7 @@ type DownloadInfo struct {
 	SongID     string    `json:"song_id"`
 	Quality    string    `json:"quality"`
 	Path       string    `json:"path"`
+	Hash       string    `json:"hash"`
 	Downloaded time.Time `json:"downloaded_at"`
 }
 

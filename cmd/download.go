@@ -16,8 +16,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var outputDir string
-var quality string
+var (
+	outputDir string
+	quality   string
+)
 
 var downloadCmd = &cobra.Command{
 	Use:   "download",
@@ -32,23 +34,7 @@ func init() {
 
 func validateInput() {
 	if outputDir == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: could not get home directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		musicDir := path.Join(homeDir, "Music")
-		if err := utils.EnsureDir(musicDir); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: could not create music directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		outputDir = path.Join(musicDir, "GoDeez")
-		if err := utils.EnsureDir(outputDir); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: could not create GoDeez directory: %v\n", err)
-			os.Exit(1)
-		}
+		outputDir = appDir
 	}
 
 	if quality == "" {
@@ -171,10 +157,19 @@ func downloadContent(contentType string, args []string) {
 			fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
 			filePath := path.Join(output, fileName)
 
-			if existing, err := db.Get(song.ID); err == nil {
-				if existing.Quality == media.Data[0].Media[0].Format && utils.FileExists(existing.Path) {
+			if existing, err := db.Get(song.ID); err == nil && existing.Quality == media.Data[0].Media[0].Format {
+				if utils.FileExists(existing.Path) {
 					fmt.Printf("    Skipping %s (already downloaded at %s)\n", songTitle, existing.Path)
 					continue
+				}
+				if existing.Hash != "" {
+					if foundPath, err := utils.FindFileByHash(appDir, existing.Hash); err == nil && foundPath != "" {
+						existing.Path = foundPath
+						_ = existing.Save()
+						fmt.Printf("    Recovered %s at %s, skipping download\n", songTitle, foundPath)
+
+						continue
+					}
 				}
 			}
 
@@ -202,10 +197,16 @@ func downloadContent(contentType string, args []string) {
 				fmt.Fprintf(os.Stderr, "Warning: could not add tags to song: %v\n", err)
 			}
 
+			hash, err := utils.GetFileHash(filePath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: could not get file hash: %v\n", err)
+			}
+
 			info := &db.DownloadInfo{
 				SongID:     song.ID,
 				Quality:    media.Data[0].Media[0].Format,
 				Path:       filePath,
+				Hash:       hash,
 				Downloaded: time.Now(),
 			}
 			if err := info.Save(); err != nil {

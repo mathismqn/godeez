@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/mathismqn/godeez/internal/utils"
 	"github.com/spf13/viper"
 )
 
@@ -17,23 +16,11 @@ type Config struct {
 
 var Cfg Config
 
-func Init(cfgFile string) {
+func Init(cfgFile, cfgDir string) {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: could not get home directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		appDir := path.Join(homeDir, ".godeez")
-		if err := utils.EnsureDir(appDir); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: could not create app directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		cfgPath := path.Join(appDir, "config.toml")
+		cfgPath := path.Join(cfgDir, "config.toml")
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 			fmt.Printf("Config file not found, creating one at %s\n", cfgPath)
 
@@ -44,7 +31,7 @@ func Init(cfgFile string) {
 			}
 		}
 
-		viper.AddConfigPath(appDir)
+		viper.AddConfigPath(cfgDir)
 		viper.SetConfigName("config.toml")
 	}
 

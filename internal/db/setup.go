@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/mathismqn/godeez/internal/utils"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -14,20 +13,10 @@ var (
 	trackBucket = []byte("tracks")
 )
 
-func Init() {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not get home directory: %v\n", err)
-		os.Exit(1)
-	}
+func Init(cfgDir string) {
+	var err error
 
-	appDir := path.Join(homeDir, ".godeez")
-	if err := utils.EnsureDir(appDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not create app directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	dbPath := path.Join(appDir, "tracks.db")
+	dbPath := path.Join(cfgDir, "tracks.db")
 	db, err = bolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: could not open database: %v\n", err)
