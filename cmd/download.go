@@ -5,9 +5,11 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/flytam/filenamify"
 	"github.com/mathismqn/godeez/internal/config"
+	"github.com/mathismqn/godeez/internal/db"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/tags"
 	"github.com/mathismqn/godeez/internal/utils"
@@ -126,11 +128,9 @@ func downloadContent(contentType string, args []string) {
 				songTitle = fmt.Sprintf("%s %s", song.Title, song.Version)
 			}
 
-			fmt.Printf("    Downloading %s...", songTitle)
-
 			media, err := song.GetMediaData(session.LicenseToken, quality)
 			if err != nil {
-				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
+				fmt.Printf("    Downloading %s... FAILED\n", songTitle)
 				fmt.Fprintf(os.Stderr, "Error: could not get media data: %v\n", err)
 				if err.Error() == "invalid license token" {
 					os.Exit(1)
@@ -139,7 +139,7 @@ func downloadContent(contentType string, args []string) {
 			}
 
 			if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
-				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
+				fmt.Printf("    Downloading %s... FAILED\n", songTitle)
 				fmt.Fprintf(os.Stderr, "Error: could not get media sources\n")
 				continue
 			}
@@ -165,6 +165,15 @@ func downloadContent(contentType string, args []string) {
 			fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
 			filePath := path.Join(output, fileName)
 
+			if existing, err := db.Get(song.ID); err == nil {
+				if existing.Quality == media.Data[0].Media[0].Format && utils.FileExists(existing.Path) {
+					fmt.Printf("    Skipping %s (already downloaded at %s)\n", songTitle, existing.Path)
+					continue
+				}
+			}
+
+			fmt.Printf("    Downloading %s...", songTitle)
+
 			err = media.Download(url, filePath, song.ID)
 			if err != nil {
 				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
@@ -183,6 +192,16 @@ func downloadContent(contentType string, args []string) {
 
 			if err := tags.AddTags(resource, song, filePath, tempo, key); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: could not add tags to song: %v\n", err)
+			}
+
+			info := &db.DownloadInfo{
+				SongID:     song.ID,
+				Quality:    media.Data[0].Media[0].Format,
+				Path:       filePath,
+				Downloaded: time.Now(),
+			}
+			if err := info.Save(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: could not save download info: %v\n", err)
 			}
 		}
 	}
