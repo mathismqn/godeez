@@ -26,6 +26,11 @@ var downloadCmd = &cobra.Command{
 	Short: "Download songs from Deezer",
 }
 
+type bpmResult struct {
+	tempo, key string
+	err        error
+}
+
 func init() {
 	RootCmd.AddCommand(downloadCmd)
 	downloadCmd.PersistentFlags().StringVarP(&outputDir, "output", "o", "", "output directory (default is $HOME/Music/GoDeez)")
@@ -175,6 +180,12 @@ func downloadContent(contentType string, args []string) {
 
 			fmt.Printf("    Downloading %s...", songTitle)
 
+			bpmCh := make(chan bpmResult, 1)
+			go func() {
+				t, k, e := song.GetTempoAndKey()
+				bpmCh <- bpmResult{tempo: t, key: k, err: e}
+			}()
+
 			err = media.Download(url, filePath, song.ID)
 			if err != nil {
 				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
@@ -185,15 +196,15 @@ func downloadContent(contentType string, args []string) {
 			}
 			fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
 
-			tempo, key, err := song.GetTempoAndKey()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: could not get tempo and key: %v\n", err)
+			res := <-bpmCh
+			if res.err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: could not get tempo/key for %s: %v\n", songTitle, res.err)
 			} else {
-				fmt.Printf("        Tempo: %s\n", tempo)
-				fmt.Printf("        Key: %s\n", key)
+				fmt.Printf("        Tempo: %s\n", res.tempo)
+				fmt.Printf("        Key: %s\n", res.key)
 			}
 
-			if err := tags.AddTags(resource, song, filePath, tempo, key); err != nil {
+			if err := tags.AddTags(resource, song, filePath, res.tempo, res.key); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: could not add tags to song: %v\n", err)
 			}
 
