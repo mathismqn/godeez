@@ -7,3 +7,11 @@ func FileExists(path string) bool {
 
 	return err == nil && !info.IsDir()
 }
+
+func DeleteFile(path string) error {
+	if !FileExists(path) {
+		return nil
+	}
+
+	return os.Remove(path)
+}

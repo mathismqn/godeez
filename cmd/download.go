@@ -90,6 +90,7 @@ func downloadContent(contentType string, args []string) {
 			if err := session.GetData(album, id); err != nil {
 				fmt.Printf("\r[%d/%d] Getting data for album %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: could not get album data: %v\n", err)
+
 				continue
 			}
 			resource = album
@@ -99,11 +100,13 @@ func downloadContent(contentType string, args []string) {
 			if err := session.GetData(playlist, id); err != nil {
 				fmt.Printf("\r[%d/%d] Getting data for playlist %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: could not get playlist data: %v\n", err)
+
 				continue
 			}
 			if playlist.Results.Data.Status == 1 && playlist.Results.Data.CollabKey == "" {
 				fmt.Printf("\r[%d/%d] Getting data for playlist %s... FAILED\n", i+1, nArgs, id)
 				fmt.Fprintf(os.Stderr, "Error: playlist is private and no valid arl cookie was provided\n")
+
 				continue
 			}
 
@@ -116,6 +119,7 @@ func downloadContent(contentType string, args []string) {
 		output := resource.GetOutputPath(outputDir)
 		if err := utils.EnsureDir(output); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: could not create output directory: %v\n", err)
+
 			continue
 		}
 
@@ -135,12 +139,14 @@ func downloadContent(contentType string, args []string) {
 				if err.Error() == "invalid license token" {
 					os.Exit(1)
 				}
+
 				continue
 			}
 
 			if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
 				fmt.Printf("    Downloading %s... FAILED\n", songTitle)
 				fmt.Fprintf(os.Stderr, "Error: could not get media sources\n")
+
 				continue
 			}
 
@@ -178,6 +184,8 @@ func downloadContent(contentType string, args []string) {
 			if err != nil {
 				fmt.Printf("\r    Downloading %s... FAILED\n", songTitle)
 				fmt.Fprintf(os.Stderr, "Error: could not download song: %v\n", err)
+				utils.DeleteFile(filePath)
+
 				continue
 			}
 			fmt.Printf("\r    Downloading %s... DONE\n", songTitle)
