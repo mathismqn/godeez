@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/mathismqn/godeez/internal/downloader"
 	"github.com/spf13/cobra"
@@ -21,6 +22,7 @@ func init() {
 
 	downloadCmd.PersistentFlags().StringVarP(&opts.OutputDir, "output", "o", "", "output directory (default is $HOME/Music/GoDeez)")
 	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "", "download quality [mp3_128, mp3_320, flac, best] (default is best)")
+	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s) (default is 2m)")
 
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),
@@ -41,7 +43,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 			dl := downloader.New(appCtx, resourceType)
 
 			if err := dl.Run(ctx, opts, args); err != nil {
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(err, context.Canceled) {
 					return nil
 				}
 

@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"time"
 )
 
 var validQualities = map[string]bool{
@@ -14,6 +15,7 @@ var validQualities = map[string]bool{
 type Options struct {
 	OutputDir string
 	Quality   string
+	Timeout   time.Duration
 }
 
 func (o *Options) Validate(appDir string) error {

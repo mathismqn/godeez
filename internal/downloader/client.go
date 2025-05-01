@@ -83,7 +83,7 @@ func (c *Client) Run(ctx context.Context, opts Options, ids []string) error {
 			}
 
 			if err := c.downloadSong(ctx, resource, song, opts, outputDir); err != nil {
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(err, context.Canceled) {
 					return err
 				}
 
@@ -132,7 +132,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return fmt.Errorf("media stream unavailable: %w", err)
 	}
 
-	dlCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
 	if err := c.streamToFile(dlCtx, stream, outputPath, song.ID); err != nil {
