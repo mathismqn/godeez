@@ -2,10 +2,6 @@ package deezer
 
 import (
 	"fmt"
-	"net/http"
-	"os"
-
-	"github.com/mathismqn/godeez/internal/crypto"
 )
 
 type Media struct {
@@ -35,64 +31,26 @@ type Source struct {
 	Provider string `json:"provider"`
 }
 
-const ChunkSize = 2048
-
-func (m *Media) Download(url, path, songID string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+func (m *Media) GetURL() (string, error) {
+	if len(m.Data) == 0 || len(m.Data[0].Media) == 0 || len(m.Data[0].Media[0].Sources) == 0 {
+		return "", fmt.Errorf("no media sources found")
 	}
 
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	key := crypto.GetBlowfishKey(songID)
-	buffer := make([]byte, ChunkSize)
-
-	for chunk := 0; ; chunk++ {
-		totalRead := 0
-		for totalRead < ChunkSize {
-			n, err := resp.Body.Read(buffer[totalRead:])
-			if err != nil {
-				if err.Error() == "EOF" {
-					break
-				}
-				return err
-			}
-
-			if n > 0 {
-				totalRead += n
-			}
-		}
-
-		if totalRead == 0 {
-			break
-		}
-
-		if chunk%3 == 0 && totalRead == ChunkSize {
-			buffer, err = crypto.DecryptBlowfish(buffer, key)
-			if err != nil {
-				return err
-			}
-		}
-
-		_, err = file.Write(buffer[:totalRead])
-		if err != nil {
-			return err
-		}
-
-		if totalRead < ChunkSize {
+	url := m.Data[0].Media[0].Sources[0].URL
+	for _, source := range m.Data[0].Media[0].Sources {
+		if source.Provider == "ak" {
+			url = source.URL
 			break
 		}
 	}
 
-	return nil
+	return url, nil
+}
+
+func (m *Media) GetFormat() (string, error) {
+	if len(m.Data) == 0 || len(m.Data[0].Media) == 0 {
+		return "", fmt.Errorf("no media format found")
+	}
+
+	return m.Data[0].Media[0].Format, nil
 }

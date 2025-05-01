@@ -1,11 +1,13 @@
 package deezer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"time"
 )
 
 type UserDataResponse struct {
@@ -26,20 +28,21 @@ type Session struct {
 	ArlCookie    string
 	APIToken     string
 	LicenseToken string
-	Client       *http.Client
+	HttpClient   *http.Client
 }
 
-func Authenticate(arlCookie string) (*Session, error) {
+func Authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
 	client := &http.Client{
-		Jar: jar,
+		Timeout: 20 * time.Second,
+		Jar:     jar,
 	}
 
 	url := "https://www.deezer.com/ajax/gw-light.php?method=deezer.getUserData&input=3&api_version=1.0&api_token="
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +62,10 @@ func Authenticate(arlCookie string) (*Session, error) {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	var res UserDataResponse
 	if err := json.Unmarshal(body, &res); err != nil {
@@ -77,6 +83,6 @@ func Authenticate(arlCookie string) (*Session, error) {
 		ArlCookie:    arlCookie,
 		APIToken:     res.Results.APIToken,
 		LicenseToken: res.Results.User.Options.LicenseToken,
-		Client:       client,
+		HttpClient:   client,
 	}, nil
 }

@@ -9,14 +9,17 @@ import (
 	"github.com/mathismqn/godeez/internal/deezer"
 )
 
-type ID3v2Tagger struct {
-	Tag *id3v2.Tag
+type id3v2Tagger struct {
+	tag *id3v2.Tag
 }
 
-func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
-	defer t.Tag.Close()
+func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
+	defer t.tag.Close()
 
-	duration, _ := strconv.Atoi(song.Duration)
+	duration, err := strconv.Atoi(song.Duration)
+	if err != nil {
+		return err
+	}
 	song.Duration = fmt.Sprintf("%d", duration*1000)
 
 	if album, ok := resource.(*deezer.Album); ok {
@@ -41,30 +44,30 @@ func (t *ID3v2Tagger) AddTags(resource deezer.Resource, song *deezer.Song, cover
 	t.addTag("TKEY", key)
 
 	frame := id3v2.PictureFrame{
-		Encoding:    t.Tag.DefaultEncoding(),
+		Encoding:    t.tag.DefaultEncoding(),
 		MimeType:    "image/jpeg",
 		PictureType: id3v2.PTFrontCover,
 		Description: "Cover",
 		Picture:     cover,
 	}
-	t.Tag.AddAttachedPicture(frame)
+	t.tag.AddAttachedPicture(frame)
 
-	return t.Tag.Save()
+	return t.tag.Save()
 }
 
-func (t *ID3v2Tagger) addTag(name, value string) {
+func (t *id3v2Tagger) addTag(name, value string) {
 	if value != "" {
-		t.Tag.AddTextFrame(name, t.Tag.DefaultEncoding(), value)
+		t.tag.AddTextFrame(name, t.tag.DefaultEncoding(), value)
 	}
 }
 
-func (t *ID3v2Tagger) addTXXXTag(description, value string) {
+func (t *id3v2Tagger) addTXXXTag(description, value string) {
 	if value != "" {
 		udf := id3v2.UserDefinedTextFrame{
-			Encoding:    t.Tag.DefaultEncoding(),
+			Encoding:    t.tag.DefaultEncoding(),
 			Description: description,
 			Value:       value,
 		}
-		t.Tag.AddUserDefinedTextFrame(udf)
+		t.tag.AddUserDefinedTextFrame(udf)
 	}
 }

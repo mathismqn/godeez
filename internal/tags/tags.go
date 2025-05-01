@@ -9,18 +9,19 @@ import (
 	"github.com/mathismqn/godeez/internal/deezer"
 )
 
-type Tagger interface {
-	AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error
+type tagger interface {
+	addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error
 }
 
-func NewTagger(filePath string) (Tagger, error) {
+func newTagger(filePath string) (tagger, error) {
 	ext := path.Ext(filePath)
 	if ext == ".mp3" {
 		tag, err := id3v2.Open(filePath, id3v2.Options{Parse: true})
 		if err != nil {
 			return nil, err
 		}
-		return &ID3v2Tagger{Tag: tag}, nil
+
+		return &id3v2Tagger{tag: tag}, nil
 	}
 
 	file, err := flac.ParseFile(filePath)
@@ -35,18 +36,14 @@ func NewTagger(filePath string) (Tagger, error) {
 		cmts = flacvorbis.New()
 	}
 
-	return &FLACTagger{File: file, Cmts: cmts, Index: idx}, nil
+	return &flacTagger{file: file, cmts: cmts, index: idx}, nil
 }
 
-func AddTags(resource deezer.Resource, song *deezer.Song, filePath, tempo, key string) error {
-	tagger, err := NewTagger(filePath)
-	if err != nil {
-		return err
-	}
-	cover, err := song.GetCoverImage()
+func AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, filePath, tempo, key string) error {
+	tagger, err := newTagger(filePath)
 	if err != nil {
 		return err
 	}
 
-	return tagger.AddTags(resource, song, cover, filePath, tempo, key)
+	return tagger.addTags(resource, song, cover, filePath, tempo, key)
 }

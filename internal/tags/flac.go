@@ -10,13 +10,13 @@ import (
 	"github.com/mathismqn/godeez/internal/deezer"
 )
 
-type FLACTagger struct {
-	File  *flac.File
-	Cmts  *flacvorbis.MetaDataBlockVorbisComment
-	Index int
+type flacTagger struct {
+	file  *flac.File
+	cmts  *flacvorbis.MetaDataBlockVorbisComment
+	index int
 }
 
-func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
+func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
 	if album, ok := resource.(*deezer.Album); ok {
 		dateParts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-")
 		if len(dateParts) == 3 {
@@ -43,11 +43,11 @@ func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover 
 	t.addTag("KEY", key)
 	t.addTag("INITIALKEY", key)
 
-	cmtsmeta := t.Cmts.Marshal()
-	if t.Index > 0 {
-		t.File.Meta[t.Index] = &cmtsmeta
+	cmtsmeta := t.cmts.Marshal()
+	if t.index > 0 {
+		t.file.Meta[t.index] = &cmtsmeta
 	} else {
-		t.File.Meta = append(t.File.Meta, &cmtsmeta)
+		t.file.Meta = append(t.file.Meta, &cmtsmeta)
 	}
 
 	picture, err := flacpicture.NewFromImageData(flacpicture.PictureTypeFrontCover, "Front cover", cover, "image/jpeg")
@@ -55,20 +55,20 @@ func (t *FLACTagger) AddTags(resource deezer.Resource, song *deezer.Song, cover 
 		return err
 	}
 	picturemeta := picture.Marshal()
-	t.File.Meta = append(t.File.Meta, &picturemeta)
+	t.file.Meta = append(t.file.Meta, &picturemeta)
 
 	return t.saveTags(path)
 }
 
-func (t *FLACTagger) addTag(name, value string) {
+func (t *flacTagger) addTag(name, value string) {
 	if value != "" {
-		t.Cmts.Add(name, value)
+		t.cmts.Add(name, value)
 	}
 }
 
-func (t *FLACTagger) saveTags(path string) error {
+func (t *flacTagger) saveTags(path string) error {
 	tempPath := path + ".tmp"
-	t.File.Save(tempPath)
+	t.file.Save(tempPath)
 
 	return os.Rename(tempPath, path)
 }

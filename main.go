@@ -1,7 +1,16 @@
 package main
 
-import "github.com/mathismqn/godeez/cmd"
+import (
+	"context"
+	"os"
+	"os/signal"
+
+	"github.com/mathismqn/godeez/cmd"
+)
 
 func main() {
-	cmd.RootCmd.Execute()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	cmd.RootCmd.ExecuteContext(ctx)
 }

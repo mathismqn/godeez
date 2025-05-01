@@ -1,8 +1,7 @@
-package db
+package store
 
 import (
 	"fmt"
-	"os"
 	"path"
 
 	bolt "go.etcd.io/bbolt"
@@ -13,21 +12,21 @@ var (
 	trackBucket = []byte("tracks")
 )
 
-func Init(cfgDir string) {
+func OpenDB(cfgDir string) error {
 	var err error
 
 	dbPath := path.Join(cfgDir, "tracks.db")
 	db, err = bolt.Open(dbPath, 0600, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not open database: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if err := db.Update(func(tx *bolt.Tx) error {
 		_, err := tx.CreateBucketIfNotExists(trackBucket)
 		return err
 	}); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not create bucket: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create bucket: %w", err)
 	}
+
+	return nil
 }

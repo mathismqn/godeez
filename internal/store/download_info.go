@@ -1,4 +1,4 @@
-package db
+package store
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ type DownloadInfo struct {
 	Downloaded time.Time `json:"downloaded_at"`
 }
 
-func Get(songID string) (*DownloadInfo, error) {
+func GetDownloadInfo(songID string) (*DownloadInfo, error) {
 	var info DownloadInfo
 
 	if err := db.View(func(tx *bbolt.Tx) error {

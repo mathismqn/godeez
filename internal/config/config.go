@@ -14,11 +14,9 @@ type Config struct {
 	IV        string `mapstructure:"iv"`
 }
 
-var Cfg Config
-
-func Init(cfgFile, cfgDir string) {
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
+func New(cfgPath, cfgDir string) (*Config, error) {
+	if cfgPath != "" {
+		viper.SetConfigFile(cfgPath)
 	} else {
 		cfgPath := path.Join(cfgDir, "config.toml")
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
@@ -26,8 +24,7 @@ func Init(cfgFile, cfgDir string) {
 
 			content := []byte("arl_cookie = ''\nsecret_key = ''\niv = '0001020304050607'\n")
 			if err := os.WriteFile(cfgPath, content, 0644); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: could not create config file: %v\n", err)
-				os.Exit(1)
+				return nil, fmt.Errorf("failed to create config file: %w", err)
 			}
 		}
 
@@ -38,22 +35,29 @@ func Init(cfgFile, cfgDir string) {
 	viper.SetConfigType("toml")
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not read config file: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	cfg := &Cfg
+	cfg := &Config{}
 	if err := viper.Unmarshal(&cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: could not unmarshal config file: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	if cfg.ArlCookie == "" {
+		return nil, fmt.Errorf("arl_cookie is not set in config file")
+	}
 	if cfg.SecretKey == "" {
-		fmt.Fprintln(os.Stderr, "Error: secret_key is not set in config file")
-		os.Exit(1)
+		return nil, fmt.Errorf("secret_key is not set in config file")
+	}
+	if len(cfg.SecretKey) != 16 {
+		return nil, fmt.Errorf("secret_key must be 16 bytes long")
 	}
 	if cfg.IV == "" {
-		fmt.Fprintln(os.Stderr, "Error: iv is not set in config file")
-		os.Exit(1)
+		return nil, fmt.Errorf("iv is not set in config file")
 	}
+	if len(cfg.IV) != 16 {
+		return nil, fmt.Errorf("iv must be 16 bytes long")
+	}
+
+	return cfg, nil
 }

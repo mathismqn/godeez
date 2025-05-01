@@ -28,22 +28,22 @@ func (a *Album) GetType() string {
 	return "Album"
 }
 
-func (a *Album) UnmarshalData(data []byte) error {
-	return json.Unmarshal(data, a)
+func (a *Album) GetTitle() string {
+	return a.Results.Data.Title
 }
 
 func (a *Album) GetSongs() []*Song {
 	return a.Results.Songs.Data
 }
 
-func (a *Album) GetOutputPath(outputDir string) string {
+func (a *Album) GetOutputDir(outputDir string) string {
 	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})
-	outputPath := path.Join(outputDir, base)
+	outputDir = path.Join(outputDir, base)
 
-	return outputPath
+	return outputDir
 }
 
-func (a *Album) GetTitle() string {
-	return a.Results.Data.Title
+func (a *Album) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, a)
 }

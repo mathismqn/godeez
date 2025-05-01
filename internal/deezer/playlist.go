@@ -24,21 +24,21 @@ func (p *Playlist) GetType() string {
 	return "Playlist"
 }
 
-func (p *Playlist) UnmarshalData(data []byte) error {
-	return json.Unmarshal(data, p)
+func (p *Playlist) GetTitle() string {
+	return p.Results.Data.Title
 }
 
 func (p *Playlist) GetSongs() []*Song {
 	return p.Results.Songs.Data
 }
 
-func (p *Playlist) GetOutputPath(outputDir string) string {
+func (p *Playlist) GetOutputDir(outputDir string) string {
 	p.Results.Data.Title, _ = filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
-	outputPath := path.Join(outputDir, p.Results.Data.Title)
+	outputDir = path.Join(outputDir, p.Results.Data.Title)
 
-	return outputPath
+	return outputDir
 }
 
-func (p *Playlist) GetTitle() string {
-	return p.Results.Data.Title
+func (p *Playlist) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, p)
 }
