@@ -11,7 +11,6 @@ import (
 type Config struct {
 	ArlCookie string `mapstructure:"arl_cookie"`
 	SecretKey string `mapstructure:"secret_key"`
-	IV        string `mapstructure:"iv"`
 }
 
 func New(cfgPath, cfgDir string) (*Config, error) {
@@ -22,7 +21,7 @@ func New(cfgPath, cfgDir string) (*Config, error) {
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 			fmt.Printf("Config file not found, creating one at %s\n", cfgPath)
 
-			content := []byte("arl_cookie = ''\nsecret_key = ''\niv = '0001020304050607'\n")
+			content := []byte("arl_cookie = ''\nsecret_key = ''\n")
 			if err := os.WriteFile(cfgPath, content, 0644); err != nil {
 				return nil, fmt.Errorf("failed to create config file: %w", err)
 			}
@@ -51,12 +50,6 @@ func New(cfgPath, cfgDir string) (*Config, error) {
 	}
 	if len(cfg.SecretKey) != 16 {
 		return nil, fmt.Errorf("secret_key must be 16 bytes long")
-	}
-	if cfg.IV == "" {
-		return nil, fmt.Errorf("iv is not set in config file")
-	}
-	if len(cfg.IV) != 16 {
-		return nil, fmt.Errorf("iv must be 16 bytes long")
 	}
 
 	return cfg, nil

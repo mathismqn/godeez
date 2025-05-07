@@ -8,6 +8,8 @@ import (
 	"golang.org/x/crypto/blowfish"
 )
 
+var iv = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
+
 func GetKey(secretKey, songID string) []byte {
 	hash := md5.Sum([]byte(songID))
 	hashHex := fmt.Sprintf("%x", hash)
@@ -20,7 +22,7 @@ func GetKey(secretKey, songID string) []byte {
 	return key
 }
 
-func Decrypt(data, key, iv []byte) ([]byte, error) {
+func Decrypt(data, key []byte) ([]byte, error) {
 	block, err := blowfish.NewCipher(key)
 	if err != nil {
 		return nil, err

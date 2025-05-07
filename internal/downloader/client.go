@@ -2,7 +2,6 @@ package downloader
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -20,7 +19,7 @@ import (
 	"github.com/mathismqn/godeez/internal/tags"
 )
 
-const ChunkSize = 2048
+const chunkSize = 2048
 
 type Client struct {
 	appCtx       *app.Context
@@ -135,7 +134,8 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
-	if err := c.streamToFile(dlCtx, stream, outputPath, song.ID); err != nil {
+	key := crypto.GetKey(c.appCtx.Config.SecretKey, song.ID)
+	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
 
 		return fmt.Errorf("unable to write to file: %w", err)
@@ -180,7 +180,7 @@ func (c *Client) shouldSkipDownload(ctx context.Context, songID, mediaFormat str
 	return "", false
 }
 
-func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputPath, songID string) error {
+func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputPath string, key []byte) error {
 	defer stream.Close()
 
 	file, err := os.Create(outputPath)
@@ -189,13 +189,7 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 	}
 	defer file.Close()
 
-	key := crypto.GetKey(c.appCtx.Config.SecretKey, songID)
-	iv, err := hex.DecodeString(c.appCtx.Config.IV)
-	if err != nil {
-		return err
-	}
-
-	buffer := make([]byte, ChunkSize)
+	buffer := make([]byte, chunkSize)
 	for chunk := 0; ; chunk++ {
 		select {
 		case <-ctx.Done():
@@ -205,7 +199,7 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 		}
 
 		totalRead := 0
-		for totalRead < ChunkSize {
+		for totalRead < chunkSize {
 			n, err := stream.Read(buffer[totalRead:])
 			if err != nil {
 				if errors.Is(err, io.EOF) {
@@ -223,8 +217,8 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 			break
 		}
 
-		if chunk%3 == 0 && totalRead == ChunkSize {
-			buffer, err = crypto.Decrypt(buffer, key, iv)
+		if chunk%3 == 0 && totalRead == chunkSize {
+			buffer, err = crypto.Decrypt(buffer, key)
 			if err != nil {
 				return err
 			}
@@ -235,7 +229,7 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 			return err
 		}
 
-		if totalRead < ChunkSize {
+		if totalRead < chunkSize {
 			break
 		}
 	}
