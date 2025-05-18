@@ -146,12 +146,13 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	case metrics = <-metricsChan:
 		fmt.Printf("BPM: %s, Key: %s\n", metrics.BPM, metrics.Key)
 	case err := <-errChan:
-
-		fmt.Printf("Warning: failed to fetch BPM and key: %v\n", err)
+		if !errors.Is(err, context.Canceled) {
+			fmt.Printf("Warning: failed to fetch BPM and key: %v\n", err)
+		}
 	}
 
 	cover, err := c.deezerClient.FetchCoverImage(ctx, song)
-	if err != nil {
+	if err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Printf("Warning: failed to fetch cover image: %v\n", err)
 	}
 
