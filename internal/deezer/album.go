@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
+	"time"
 
 	"github.com/flytam/filenamify"
 )
@@ -17,11 +19,32 @@ type Album struct {
 			PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
 			Label               string `json:"LABEL_NAME"`
 			ProducerLine        string `json:"PRODUCER_LINE"`
+			Duration            string `json:"DURATION"`
 		} `json:"DATA"`
 		Songs struct {
 			Data []*Song `json:"data"`
 		} `json:"SONGS"`
 	} `json:"results"`
+}
+
+func (a *Album) String() string {
+	duration, err := strconv.Atoi(a.Results.Data.Duration)
+	if err != nil {
+		duration = 0
+	}
+
+	return fmt.Sprintf(
+		`================= [ Album Info ] =================
+Title:    %s
+Artist:   %s
+Tracks:   %d
+Duration: %s
+==================================================`,
+		a.Results.Data.Title,
+		a.Results.Data.Artist,
+		len(a.Results.Songs.Data),
+		time.Duration(duration)*time.Second,
+	)
 }
 
 func (a *Album) GetType() string {

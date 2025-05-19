@@ -2,7 +2,9 @@ package deezer
 
 import (
 	"encoding/json"
+	"fmt"
 	"path"
+	"time"
 
 	"github.com/flytam/filenamify"
 )
@@ -10,14 +12,30 @@ import (
 type Playlist struct {
 	Results struct {
 		Data struct {
-			Title     string `json:"TITLE"`
-			Status    int    `json:"STATUS"`
-			CollabKey string `json:"COLLAB_KEY"`
+			Title    string `json:"TITLE"`
+			Status   int    `json:"STATUS"`
+			Creator  string `json:"PARENT_USERNAME"`
+			Duration int    `json:"DURATION"`
 		} `json:"DATA"`
 		Songs struct {
 			Data []*Song `json:"data"`
 		} `json:"SONGS"`
 	} `json:"results"`
+}
+
+func (p *Playlist) String() string {
+	return fmt.Sprintf(
+		`=============== [ Playlist Info ] ===============
+Title:    %s
+Creator:  %s
+Tracks:   %d
+Duration: %s
+=================================================`,
+		p.Results.Data.Title,
+		p.Results.Data.Creator,
+		len(p.Results.Songs.Data),
+		time.Duration(p.Results.Data.Duration)*time.Second,
+	)
 }
 
 func (p *Playlist) GetType() string {
