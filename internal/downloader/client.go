@@ -40,95 +40,89 @@ func New(appCtx *app.Context, resourceType string) *Client {
 	}
 }
 
-func (c *Client) Run(ctx context.Context, opts Options, ids []string) error {
+func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	var err error
 	c.deezerClient, err = deezer.NewClient(ctx, c.appCtx)
 	if err != nil {
 		return err
 	}
 
-	for _, id := range ids {
+	var resource deezer.Resource
+	switch c.resourceType {
+	case "album":
+		resource = &deezer.Album{}
+	case "playlist":
+		resource = &deezer.Playlist{}
+	default:
+		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
+	}
+
+	if err := c.deezerClient.FetchResource(ctx, resource, id); err != nil {
+		return fmt.Errorf("failed to fetch resource: %w", err)
+	}
+
+	songs := resource.GetSongs()
+	if len(songs) == 0 {
+		return fmt.Errorf("%s has no songs", c.resourceType)
+	}
+
+	outputDir := resource.GetOutputDir(opts.OutputDir)
+	if err := fileutil.EnsureDir(outputDir); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	startTime := time.Now()
+	fmt.Printf("%s\n\nStarting download...\n\n", resource)
+
+	downloaded := 0
+	skipped := 0
+	failed := 0
+
+	for i, song := range songs {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 
-		downloaded := 0
-		skipped := 0
-		failed := 0
+		trackProgress := fmt.Sprintf("[%d/%d]", i+1, len(songs))
 
-		var resource deezer.Resource
+		sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		sp.Writer = os.Stdout
+		sp.Prefix = trackProgress + " "
+		sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, song.Title)
+		sp.Start()
 
-		switch c.resourceType {
-		case "album":
-			resource = &deezer.Album{}
-		case "playlist":
-			resource = &deezer.Playlist{}
-		default:
-			return fmt.Errorf("unsupported resource type: %s", c.resourceType)
-		}
+		warnings, err := c.downloadSong(ctx, resource, song, opts, outputDir)
+		sp.Stop()
 
-		if err := c.deezerClient.FetchResource(ctx, resource, id); err != nil {
-			return fmt.Errorf("failed to fetch resource: %w", err)
-		}
-
-		songs := resource.GetSongs()
-		if len(songs) == 0 {
-			return fmt.Errorf("%s has no songs", c.resourceType)
-		}
-
-		outputDir := resource.GetOutputDir(opts.OutputDir)
-		if err := fileutil.EnsureDir(outputDir); err != nil {
-			return fmt.Errorf("failed to create output directory: %w", err)
-		}
-
-		startTime := time.Now()
-		fmt.Printf("%s\n\nStarting download...\n\n", resource)
-
-		for i, song := range songs {
-			if ctx.Err() != nil {
-				return ctx.Err()
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return err
 			}
 
-			trackProgress := fmt.Sprintf("[%d/%d]", i+1, len(songs))
-
-			sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-			sp.Writer = os.Stdout
-			sp.Prefix = trackProgress + " "
-			sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, song.Title)
-			sp.Start()
-
-			warnings, err := c.downloadSong(ctx, resource, song, opts, outputDir)
-			sp.Stop()
-
-			if err != nil {
-				if errors.Is(err, context.Canceled) {
-					return err
-				}
-
-				if path, ok := IsSkipError(err); ok {
-					skipped++
-					fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n", trackProgress, song.Artist, song.Title, path)
-					continue
-				}
-
-				failed++
-				fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, song.Title, err)
+			if path, ok := IsSkipError(err); ok {
+				skipped++
+				fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n", trackProgress, song.Artist, song.Title, path)
 				continue
 			}
 
-			symbol := "✔"
-			if len(warnings) > 0 {
-				symbol = "⚠"
-			}
-
-			downloaded++
-			fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, song.Title)
-			for _, w := range warnings {
-				fmt.Printf("    Warning: %s\n", w)
-			}
+			failed++
+			fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, song.Title, err)
+			continue
 		}
 
-		fmt.Printf(`
+		symbol := "✔"
+		if len(warnings) > 0 {
+			symbol = "⚠"
+		}
+
+		downloaded++
+		fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, song.Title)
+		for _, w := range warnings {
+			fmt.Printf("    Warning: %s\n", w)
+		}
+	}
+
+	fmt.Printf(`
 ================== [ Summary ] ==================
 Downloaded:     %d
 Skipped:        %d
@@ -137,14 +131,12 @@ Elapsed time:   %s
 Files saved to: %s
 =================================================
 `,
-			downloaded,
-			skipped,
-			failed,
-			time.Since(startTime).Round(time.Second),
-			outputDir,
-		)
-
-	}
+		downloaded,
+		skipped,
+		failed,
+		time.Since(startTime).Round(time.Second),
+		outputDir,
+	)
 
 	return nil
 }

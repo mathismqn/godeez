@@ -20,9 +20,9 @@ var downloadCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(downloadCmd)
 
-	downloadCmd.PersistentFlags().StringVarP(&opts.OutputDir, "output", "o", "", "output directory (default is $HOME/Music/GoDeez)")
-	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "", "download quality [mp3_128, mp3_320, flac, best] (default is best)")
-	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s) (default is 2m)")
+	downloadCmd.PersistentFlags().StringVarP(&opts.OutputDir, "output", "o", "", "output directory (default $HOME/Music/GoDeez)")
+	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "best", "download quality [mp3_128, mp3_320, flac, best]")
+	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),
@@ -32,9 +32,9 @@ func init() {
 
 func newDownloadCmd(resourceType string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s [%s_id...]", resourceType, resourceType),
-		Short: fmt.Sprintf("Download songs from one or more %ss", resourceType),
-		Args:  cobra.MinimumNArgs(1),
+		Use:   fmt.Sprintf("%s <id>", resourceType),
+		Short: fmt.Sprintf("Download songs from %s", resourceType),
+		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Validate(appCtx.AppDir)
 		},
@@ -42,7 +42,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 			ctx := cmd.Context()
 			dl := downloader.New(appCtx, resourceType)
 
-			if err := dl.Run(ctx, opts, args); err != nil {
+			if err := dl.Run(ctx, opts, args[0]); err != nil {
 				if errors.Is(err, context.Canceled) {
 					return nil
 				}

@@ -23,5 +23,5 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "config file (default is $HOME/.godeez)")
+	RootCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "config file (default $HOME/.godeez)")
 }
