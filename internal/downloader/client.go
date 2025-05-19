@@ -161,18 +161,21 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return warnings, SkipError{Path: path}
 	}
 
-	metricsChan := make(chan *bpm.Metrics, 1)
-	errChan := make(chan error, 1)
+	var metricsChan chan *bpm.Metrics
+	var errChan chan error
+	if opts.BPM {
+		metricsChan = make(chan *bpm.Metrics, 1)
+		errChan = make(chan error, 1)
+		go func() {
+			metrics, err := bpm.FetchMetrics(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.Title, song.Duration)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-	go func() {
-		metrics, err := bpm.FetchMetrics(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.GetTitle(), song.Duration)
-		if err != nil {
-			errChan <- err
-			return
-		}
-
-		metricsChan <- metrics
-	}()
+			metricsChan <- metrics
+		}()
+	}
 
 	stream, err := c.deezerClient.GetMediaStream(ctx, media, song.ID)
 	if err != nil {
@@ -190,11 +193,13 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	}
 
 	metrics := &bpm.Metrics{}
-	select {
-	case metrics = <-metricsChan:
-	case err := <-errChan:
-		if !errors.Is(err, context.Canceled) {
-			warnings = append(warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
+	if opts.BPM {
+		select {
+		case metrics = <-metricsChan:
+		case err := <-errChan:
+			if !errors.Is(err, context.Canceled) {
+				warnings = append(warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
+			}
 		}
 	}
 

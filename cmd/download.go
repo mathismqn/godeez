@@ -23,6 +23,7 @@ func init() {
 	downloadCmd.PersistentFlags().StringVarP(&opts.OutputDir, "output", "o", "", "output directory (default $HOME/Music/GoDeez)")
 	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "best", "download quality [mp3_128, mp3_320, flac, best]")
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
+	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
 
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),

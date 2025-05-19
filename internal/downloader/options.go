@@ -16,6 +16,7 @@ type Options struct {
 	OutputDir string
 	Quality   string
 	Timeout   time.Duration
+	BPM       bool
 }
 
 func (o *Options) Validate(appDir string) error {
