@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/mathismqn/godeez/internal/app"
 	"github.com/mathismqn/godeez/internal/bpm"
+	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
@@ -23,7 +23,7 @@ import (
 const chunkSize = 2048
 
 type Client struct {
-	appCtx       *app.Context
+	appConfig    *config.Config
 	resourceType string
 	deezerClient *deezer.Client
 
@@ -32,9 +32,9 @@ type Client struct {
 	hashIndexErr  error
 }
 
-func New(appCtx *app.Context, resourceType string) *Client {
+func New(appConfig *config.Config, resourceType string) *Client {
 	return &Client{
-		appCtx:       appCtx,
+		appConfig:    appConfig,
 		resourceType: resourceType,
 		deezerClient: nil,
 	}
@@ -42,7 +42,7 @@ func New(appCtx *app.Context, resourceType string) *Client {
 
 func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	var err error
-	c.deezerClient, err = deezer.NewClient(ctx, c.appCtx)
+	c.deezerClient, err = deezer.NewClient(ctx, c.appConfig)
 	if err != nil {
 		return err
 	}
@@ -66,8 +66,9 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		return fmt.Errorf("%s has no songs", c.resourceType)
 	}
 
-	outputDir := resource.GetOutputDir(opts.OutputDir)
-	if err := fileutil.EnsureDir(outputDir); err != nil {
+	rootOutputDir := c.appConfig.OutputDir
+	resourceOutputDir := resource.GetOutputDir(rootOutputDir)
+	if err := fileutil.EnsureDir(resourceOutputDir); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -91,7 +92,7 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, song.Title)
 		sp.Start()
 
-		warnings, err := c.downloadSong(ctx, resource, song, opts, outputDir)
+		warnings, err := c.downloadSong(ctx, resource, song, opts, resourceOutputDir)
 		sp.Stop()
 
 		if err != nil {
@@ -135,7 +136,7 @@ Files saved to: %s
 		skipped,
 		failed,
 		time.Since(startTime).Round(time.Second),
-		outputDir,
+		resourceOutputDir,
 	)
 
 	return nil
@@ -185,7 +186,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
-	key := crypto.GetKey(c.appCtx.Config.SecretKey, song.ID)
+	key := crypto.GetKey(c.appConfig.SecretKey, song.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
 
@@ -299,7 +300,7 @@ func (c *Client) finalizeDownload(resource deezer.Resource, song *deezer.Song, o
 
 func (c *Client) initHashIndex(ctx context.Context) error {
 	c.hashIndexOnce.Do(func() {
-		c.hashIndex, c.hashIndexErr = fileutil.NewHashIndex(ctx, c.appCtx.AppDir)
+		c.hashIndex, c.hashIndexErr = fileutil.NewHashIndex(ctx, c.appConfig.OutputDir)
 	})
 
 	return c.hashIndexErr

@@ -4,53 +4,79 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
+	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/store"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
 	ArlCookie string `mapstructure:"arl_cookie"`
 	SecretKey string `mapstructure:"secret_key"`
+	OutputDir string `mapstructure:"output_dir"`
 }
 
-func New(cfgPath, cfgDir string) (*Config, error) {
-	if cfgPath != "" {
-		viper.SetConfigFile(cfgPath)
-	} else {
-		cfgPath := path.Join(cfgDir, "config.toml")
+func New(cfgPath string) (*Config, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	cfgDir := filepath.Join(homeDir, ".godeez")
+	if err := fileutil.EnsureDir(cfgDir); err != nil {
+		return nil, fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	if cfgPath == "" {
+		cfgPath = path.Join(cfgDir, "config.toml")
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 			fmt.Printf("Config file not found, creating one at %s\n", cfgPath)
 
-			content := []byte("arl_cookie = ''\nsecret_key = ''\n")
+			content := []byte("arl_cookie = ''\nsecret_key = ''\noutput_dir = ''\n")
 			if err := os.WriteFile(cfgPath, content, 0644); err != nil {
 				return nil, fmt.Errorf("failed to create config file: %w", err)
 			}
-		}
 
-		viper.AddConfigPath(cfgDir)
-		viper.SetConfigName("config.toml")
+			os.Exit(0)
+		}
 	}
 
+	viper.SetConfigFile(cfgPath)
 	viper.SetConfigType("toml")
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	cfg := &Config{}
+	var cfg Config
 	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+	if err := cfg.Validate(homeDir); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	if cfg.ArlCookie == "" {
-		return nil, fmt.Errorf("arl_cookie is not set in config file")
-	}
-	if cfg.SecretKey == "" {
-		return nil, fmt.Errorf("secret_key is not set in config file")
-	}
-	if len(cfg.SecretKey) != 16 {
-		return nil, fmt.Errorf("secret_key must be 16 bytes long")
+	if err := store.OpenDB(cfgDir); err != nil {
+		return nil, err
 	}
 
-	return cfg, nil
+	return &cfg, nil
+}
+
+func (c *Config) Validate(homeDir string) error {
+	if c.ArlCookie == "" {
+		return fmt.Errorf("arl_cookie is not set")
+	}
+	if c.SecretKey == "" {
+		return fmt.Errorf("secret_key is not set")
+	}
+	if len(c.SecretKey) != 16 {
+		return fmt.Errorf("secret_key must be 16 bytes long")
+	}
+	if c.OutputDir == "" {
+		c.OutputDir = filepath.Join(homeDir, "Music", "GoDeez")
+	}
+
+	return nil
 }

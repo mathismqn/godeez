@@ -9,23 +9,23 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/mathismqn/godeez/internal/app"
+	"github.com/mathismqn/godeez/internal/config"
 )
 
 type Client struct {
-	AppCtx  *app.Context
-	Session *Session
+	AppConfig *config.Config
+	Session   *Session
 }
 
-func NewClient(ctx context.Context, appCtx *app.Context) (*Client, error) {
-	session, err := Authenticate(ctx, appCtx.Config.ArlCookie)
+func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
+	session, err := Authenticate(ctx, appConfig.ArlCookie)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate: %w", err)
 	}
 
 	return &Client{
-		AppCtx:  appCtx,
-		Session: session,
+		AppConfig: appConfig,
+		Session:   session,
 	}, nil
 }
 

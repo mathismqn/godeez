@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"github.com/mathismqn/godeez/internal/app"
+	"github.com/mathismqn/godeez/internal/config"
 	"github.com/spf13/cobra"
 )
 
 var (
-	cfgPath string
-	appCtx  *app.Context
+	cfgPath   string
+	appConfig *config.Config
 )
 
 var RootCmd = &cobra.Command{
@@ -16,7 +16,7 @@ var RootCmd = &cobra.Command{
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		appCtx, err = app.NewContext(cfgPath)
+		appConfig, err = config.New(cfgPath)
 
 		return err
 	},

@@ -13,21 +13,12 @@ var validQualities = map[string]bool{
 }
 
 type Options struct {
-	OutputDir string
-	Quality   string
-	Timeout   time.Duration
-	BPM       bool
+	Quality string
+	Timeout time.Duration
+	BPM     bool
 }
 
-func (o *Options) Validate(appDir string) error {
-	if o.OutputDir == "" {
-		o.OutputDir = appDir
-	}
-
-	if o.Quality == "" {
-		o.Quality = "best"
-	}
-
+func (o *Options) Validate() error {
 	if !validQualities[o.Quality] {
 		return fmt.Errorf("invalid quality option: %s", o.Quality)
 	}

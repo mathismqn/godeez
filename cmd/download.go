@@ -20,7 +20,6 @@ var downloadCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(downloadCmd)
 
-	downloadCmd.PersistentFlags().StringVarP(&opts.OutputDir, "output", "o", "", "output directory (default $HOME/Music/GoDeez)")
 	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "best", "download quality [mp3_128, mp3_320, flac, best]")
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
@@ -37,11 +36,11 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 		Short: fmt.Sprintf("Download songs from %s", resourceType),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return opts.Validate(appCtx.AppDir)
+			return opts.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := cmd.Context()
-			dl := downloader.New(appCtx, resourceType)
+			dl := downloader.New(appConfig, resourceType)
 
 			if err := dl.Run(ctx, opts, args[0]); err != nil {
 				if errors.Is(err, context.Canceled) {
