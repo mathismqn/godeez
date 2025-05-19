@@ -2,7 +2,6 @@ package deezer
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/flytam/filenamify"
 )
@@ -44,7 +43,7 @@ func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string
 		trackNumber = song.TrackNumber + "."
 	}
 
-	fileName := fmt.Sprintf("%s %s - %s.%s", trackNumber, s.GetTitle(), strings.Join(song.Contributors.MainArtists, ", "), ext)
+	fileName := fmt.Sprintf("%s %s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
 	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
 
 	return fileName
