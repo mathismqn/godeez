@@ -32,7 +32,7 @@ func init() {
 
 func newDownloadCmd(resourceType string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <id>", resourceType),
+		Use:   fmt.Sprintf("%s <%s_id>", resourceType, resourceType),
 		Short: fmt.Sprintf("Download songs from %s", resourceType),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
