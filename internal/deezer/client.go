@@ -169,7 +169,10 @@ func (c *Client) GetMediaStream(ctx context.Context, media *Media, songID string
 		return nil, err
 	}
 
-	resp, err := c.Session.HttpClient.Do(req)
+	streamingClient := *c.Session.HttpClient
+	streamingClient.Timeout = 0
+
+	resp, err := streamingClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
