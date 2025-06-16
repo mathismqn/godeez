@@ -20,7 +20,7 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 ## Features
 
 * Download playlists and albums from Deezer
-* Select audio quality: MP3 128kbps, MP3 320kbps, or FLAC
+* Select audio quality: MP3 128kbps, MP3 320kbps, or FLAC (⚠️ non-premium accounts are limited to 128kbps)
 * Automatically adds metadata tags to downloaded files
 * Fetch and tag songs with BPM and musical key
 * Smart skip system: avoids re-downloading already existing files using hashes and metadata
