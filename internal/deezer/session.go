@@ -29,6 +29,7 @@ type Session struct {
 	APIToken     string
 	LicenseToken string
 	HttpClient   *http.Client
+	Premium      bool
 }
 
 func Authenticate(ctx context.Context, arlCookie string) (*Session, error) {
@@ -75,14 +76,14 @@ func Authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	if res.Results.User.Id == 0 {
 		return nil, fmt.Errorf("invalid arl cookie")
 	}
-	if !res.Results.User.Options.MobileOffline && !res.Results.User.Options.WebOffline {
-		return nil, fmt.Errorf("premium account required")
-	}
+
+	isPremium := res.Results.User.Options.MobileOffline || res.Results.User.Options.WebOffline
 
 	return &Session{
 		ArlCookie:    arlCookie,
 		APIToken:     res.Results.APIToken,
 		LicenseToken: res.Results.User.Options.LicenseToken,
 		HttpClient:   client,
+		Premium:      isPremium,
 	}, nil
 }

@@ -47,6 +47,10 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		return err
 	}
 
+	if !c.deezerClient.Session.Premium && (opts.Quality == "mp3_320" || opts.Quality == "flac") {
+		return fmt.Errorf("premium account required for %s quality", opts.Quality)
+	}
+
 	var resource deezer.Resource
 	switch c.resourceType {
 	case "album":
