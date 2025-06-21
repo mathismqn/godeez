@@ -57,6 +57,8 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		resource = &deezer.Album{}
 	case "playlist":
 		resource = &deezer.Playlist{}
+	case "artist":
+		resource = &deezer.Artist{}
 	default:
 		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
 	}
@@ -68,6 +70,10 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	songs := resource.GetSongs()
 	if len(songs) == 0 {
 		return fmt.Errorf("%s has no songs", c.resourceType)
+	}
+	if opts.Limit > 0 && len(songs) > opts.Limit {
+		songs = songs[:opts.Limit]
+		resource.SetSongs(songs)
 	}
 
 	rootOutputDir := c.appConfig.OutputDir

@@ -59,6 +59,10 @@ func (a *Album) GetSongs() []*Song {
 	return a.Results.Songs.Data
 }
 
+func (a *Album) SetSongs(s []*Song) {
+	a.Results.Songs.Data = s
+}
+
 func (a *Album) GetOutputDir(outputDir string) string {
 	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})

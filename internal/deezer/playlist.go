@@ -50,6 +50,10 @@ func (p *Playlist) GetSongs() []*Song {
 	return p.Results.Songs.Data
 }
 
+func (p *Playlist) SetSongs(s []*Song) {
+	p.Results.Songs.Data = s
+}
+
 func (p *Playlist) GetOutputDir(outputDir string) string {
 	p.Results.Data.Title, _ = filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
 	outputDir = path.Join(outputDir, p.Results.Data.Title)

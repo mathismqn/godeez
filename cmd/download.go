@@ -27,13 +27,19 @@ func init() {
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),
 		newDownloadCmd("playlist"),
+		newDownloadCmd("artist"),
 	)
 }
 
 func newDownloadCmd(resourceType string) *cobra.Command {
+	article := "a"
+	if resourceType == "album" {
+		article = "an"
+	}
+
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <%s_id>", resourceType, resourceType),
-		Short: fmt.Sprintf("Download songs from %s", resourceType),
+		Short: fmt.Sprintf("Download songs from %s %s", article, resourceType),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return opts.Validate()
@@ -52,6 +58,11 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 
 			return nil
 		},
+	}
+
+	if resourceType == "artist" {
+		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
+		cmd.Short = fmt.Sprintf("Download top songs from an artist")
 	}
 
 	return cmd

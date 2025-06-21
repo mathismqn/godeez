@@ -29,23 +29,32 @@ func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) FetchResource(ctx context.Context, ressource Resource, id string) error {
+func (c *Client) FetchResource(ctx context.Context, resource Resource, id string) error {
 	payload := map[string]interface{}{
-		"nb":          10000,
-		"start":       0,
-		"playlist_id": id,
-		"alb_id":      id,
-		"lang":        "en",
-		"tab":         0,
-		"tags":        true,
-		"header":      true,
+		"nb":     10000,
+		"start":  0,
+		"lang":   "en",
+		"tab":    0,
+		"tags":   true,
+		"header": true,
 	}
+	switch r := resource.(type) {
+	case *Playlist:
+		payload["playlist_id"] = id
+	case *Album:
+		payload["alb_id"] = id
+	case *Artist:
+		payload["art_id"] = id
+	default:
+		return fmt.Errorf("unsupported resource type: %T", r)
+	}
+
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", ressource.GetType(), c.Session.APIToken)
+	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", resource.GetType(), c.Session.APIToken)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
@@ -72,11 +81,14 @@ func (c *Client) FetchResource(ctx context.Context, ressource Resource, id strin
 	if strings.Contains(string(body), `"DATA_ERROR":"album::getData"`) {
 		return fmt.Errorf("invalid album ID")
 	}
+	if strings.Contains(string(body), `"DATA_ERROR":"artist::getData"`) {
+		return fmt.Errorf("invalid artist ID")
+	}
 	if strings.Contains(string(body), `"results":{}`) {
 		return fmt.Errorf("unexpected response")
 	}
 
-	return ressource.Unmarshal(body)
+	return resource.Unmarshal(body)
 }
 
 func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*Media, error) {
