@@ -71,7 +71,7 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	if len(songs) == 0 {
 		return fmt.Errorf("%s has no songs", c.resourceType)
 	}
-	if opts.Limit > 0 && len(songs) > opts.Limit {
+	if c.resourceType == "artist" && len(songs) > opts.Limit {
 		songs = songs[:opts.Limit]
 		resource.SetSongs(songs)
 	}
