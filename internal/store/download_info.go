@@ -16,6 +16,8 @@ type DownloadInfo struct {
 	Downloaded time.Time `json:"downloaded_at"`
 }
 
+var trackBucket = []byte("tracks")
+
 func GetDownloadInfo(songID string) (*DownloadInfo, error) {
 	var info DownloadInfo
 
@@ -39,9 +41,9 @@ func GetDownloadInfo(songID string) (*DownloadInfo, error) {
 
 func (d *DownloadInfo) Save() error {
 	return db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket(trackBucket)
-		if b == nil {
-			return fmt.Errorf("bucket not found")
+		b, err := tx.CreateBucketIfNotExists(trackBucket)
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
 		}
 
 		data, err := json.Marshal(d)
@@ -49,11 +51,6 @@ func (d *DownloadInfo) Save() error {
 			return err
 		}
 
-		err = b.Put([]byte(d.SongID), data)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return b.Put([]byte(d.SongID), data)
 	})
 }

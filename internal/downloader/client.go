@@ -16,6 +16,7 @@ import (
 	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/logger"
 	"github.com/mathismqn/godeez/internal/store"
 	"github.com/mathismqn/godeez/internal/tags"
 )
@@ -26,6 +27,7 @@ type Client struct {
 	appConfig    *config.Config
 	resourceType string
 	deezerClient *deezer.Client
+	Logger       *logger.Logger
 
 	hashIndexOnce sync.Once
 	hashIndex     *fileutil.HashIndex
@@ -117,7 +119,9 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 			}
 
 			failed++
+			c.Logger.Errorf("Failed to download %s - %s: %v\n", song.Artist, song.Title, err)
 			fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, song.Title, err)
+
 			continue
 		}
 
@@ -127,12 +131,18 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		}
 
 		downloaded++
+		c.Logger.Infof("Downloaded %s - %s\n", song.Artist, song.Title)
 		fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, song.Title)
+
 		for _, w := range warnings {
+			c.Logger.Warnf("Warning: %s\n", w)
 			fmt.Printf("    Warning: %s\n", w)
 		}
 	}
 
+	if downloaded > 0 || failed > 0 {
+		c.Logger.Infof("Playlist %s (%s): %d downloaded, %d skipped, %d failed\n", resource.GetTitle(), id, downloaded, skipped, failed)
+	}
 	fmt.Printf(`
 ================== [ Summary ] ==================
 Downloaded:     %d
