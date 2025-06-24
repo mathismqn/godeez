@@ -15,6 +15,7 @@ type Config struct {
 	ArlCookie string `mapstructure:"arl_cookie"`
 	SecretKey string `mapstructure:"secret_key"`
 	OutputDir string `mapstructure:"output_dir"`
+	HomeDir   string
 }
 
 func New(cfgPath string) (*Config, error) {
@@ -49,11 +50,11 @@ func New(cfgPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
+	cfg := &Config{HomeDir: homeDir}
+	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
-	if err := cfg.Validate(homeDir); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
@@ -61,10 +62,10 @@ func New(cfgPath string) (*Config, error) {
 		return nil, err
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }
 
-func (c *Config) Validate(homeDir string) error {
+func (c *Config) Validate() error {
 	if c.ArlCookie == "" {
 		return fmt.Errorf("arl_cookie is not set")
 	}
@@ -75,7 +76,7 @@ func (c *Config) Validate(homeDir string) error {
 		return fmt.Errorf("secret_key must be 16 bytes long")
 	}
 	if c.OutputDir == "" {
-		c.OutputDir = filepath.Join(homeDir, "Music", "GoDeez")
+		c.OutputDir = filepath.Join(c.HomeDir, "Music", "GoDeez")
 	}
 
 	return nil

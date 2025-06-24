@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func installAutostart() error {
+func installAutostart(homeDir string) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func installAutostart() error {
 </dict>
 </plist>`, exe)
 
-	path := filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.godeez.watch.plist")
+	path := filepath.Join(homeDir, "Library", "LaunchAgents", "com.godeez.watch.plist")
 	if err := os.WriteFile(path, []byte(plist), 0644); err != nil {
 		return err
 	}

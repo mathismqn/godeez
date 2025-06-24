@@ -7,18 +7,18 @@ import (
 	"strings"
 )
 
-func EnsureAutostart() error {
-	if isAutostartInstalled() || isTemporaryExecutable() {
+func EnsureAutostart(homeDir string) error {
+	if isAutostartInstalled(homeDir) || isTemporaryExecutable() {
 		return nil
 	}
 
-	return installAutostart()
+	return installAutostart(homeDir)
 }
 
-func isAutostartInstalled() bool {
+func isAutostartInstalled(homeDir string) bool {
 	switch runtime.GOOS {
 	case "darwin":
-		path := filepath.Join(os.Getenv("HOME"), "Library", "LaunchAgents", "com.godeez.watch.plist")
+		path := filepath.Join(homeDir, "Library", "LaunchAgents", "com.godeez.watch.plist")
 		_, err := os.Stat(path)
 
 		return err == nil

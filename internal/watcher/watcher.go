@@ -20,8 +20,7 @@ type Watcher struct {
 }
 
 func New(appConfig *config.Config) *Watcher {
-	homeDir, _ := os.UserHomeDir()
-	logFile := filepath.Join(homeDir, ".godeez", "watcher.log")
+	logFile := filepath.Join(appConfig.HomeDir, ".godeez", "watcher.log")
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatalf("Failed to open log file: %v\n", err)
