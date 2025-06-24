@@ -39,6 +39,7 @@ func New(appConfig *config.Config, resourceType string) *Client {
 		appConfig:    appConfig,
 		resourceType: resourceType,
 		deezerClient: nil,
+		Logger:       logger.New(nil), // Initialize with a nil logger, can be set later
 	}
 }
 
