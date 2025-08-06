@@ -36,15 +36,7 @@ func (m *Media) GetURL() (string, error) {
 		return "", fmt.Errorf("no media sources found")
 	}
 
-	url := m.Data[0].Media[0].Sources[0].URL
-	for _, source := range m.Data[0].Media[0].Sources {
-		if source.Provider == "ak" {
-			url = source.URL
-			break
-		}
-	}
-
-	return url, nil
+	return m.Data[0].Media[0].Sources[0].URL, nil
 }
 
 func (m *Media) GetFormat() (string, error) {

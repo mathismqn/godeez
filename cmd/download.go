@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mathismqn/godeez/internal/config"
@@ -52,6 +53,8 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 				return err
 			}
 			cmd.SetContext(context.WithValue(cmd.Context(), "appConfig", appConfig))
+
+			opts.Quality = strings.ToLower(opts.Quality)
 
 			return opts.Validate()
 		},

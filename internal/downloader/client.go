@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -168,7 +169,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 
 	media, err := c.deezerClient.FetchMedia(ctx, song, opts.Quality)
 	if err != nil {
-		return warnings, fmt.Errorf("failed to fetch media: %w", err)
+		return nil, fmt.Errorf("failed to fetch media: %w", err)
 	}
 
 	fileName := song.GetFileName(c.resourceType, song, media)
@@ -176,11 +177,11 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 
 	mediaFormat, err := media.GetFormat()
 	if err != nil {
-		return warnings, fmt.Errorf("failed to get media format: %w", err)
+		return nil, fmt.Errorf("failed to get media format: %w", err)
 	}
 
 	if path, skip := c.shouldSkipDownload(ctx, song.ID, mediaFormat); skip {
-		return warnings, SkipError{Path: path}
+		return nil, SkipError{Path: path}
 	}
 
 	var metricsChan chan *bpm.Metrics
@@ -201,7 +202,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 
 	stream, err := c.deezerClient.GetMediaStream(ctx, media, song.ID)
 	if err != nil {
-		return warnings, fmt.Errorf("failed to get media stream: %w", err)
+		return nil, fmt.Errorf("failed to get media stream: %w", err)
 	}
 
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
@@ -211,7 +212,11 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
 
-		return warnings, fmt.Errorf("failed to stream to file: %w", err)
+		return nil, fmt.Errorf("failed to stream to file: %w", err)
+	}
+
+	if opts.Quality != strings.ToLower(mediaFormat) {
+		warnings = append(warnings, fmt.Sprintf("requested quality '%s' not available, using '%s' instead", opts.Quality, strings.ToLower(mediaFormat)))
 	}
 
 	metrics := &bpm.Metrics{}
