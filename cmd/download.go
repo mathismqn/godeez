@@ -26,7 +26,7 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 
 	downloadCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "config file (default ~/.godeez/config.toml)")
-	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "best", "download quality [mp3_128, mp3_320, flac, best]")
+	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "flac", "download quality [mp3_128, mp3_320, flac]")
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
 

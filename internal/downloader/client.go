@@ -52,7 +52,7 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	}
 
 	if !c.deezerClient.Session.Premium && (opts.Quality == "mp3_320" || opts.Quality == "flac") {
-		return fmt.Errorf("premium account required for %s quality", opts.Quality)
+		return fmt.Errorf("premium account required for '%s' quality", opts.Quality)
 	}
 
 	var resource deezer.Resource

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mathismqn/godeez/internal/store"
@@ -25,7 +26,7 @@ var watchAddCmd = &cobra.Command{
 
 		playlist := &store.WatchedPlaylist{
 			ID:      id,
-			Quality: opts.Quality,
+			Quality: strings.ToLower(opts.Quality),
 			BPM:     opts.BPM,
 			Timeout: opts.Timeout,
 		}
@@ -42,7 +43,7 @@ var watchAddCmd = &cobra.Command{
 func init() {
 	watchCmd.AddCommand(watchAddCmd)
 
-	watchAddCmd.Flags().StringVarP(&opts.Quality, "quality", "q", "best", "download quality [mp3_128, mp3_320, flac, best]")
+	watchAddCmd.Flags().StringVarP(&opts.Quality, "quality", "q", "flac", "download quality [mp3_128, mp3_320, flac]")
 	watchAddCmd.Flags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	watchAddCmd.Flags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
 }

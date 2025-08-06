@@ -9,7 +9,6 @@ var validQualities = map[string]bool{
 	"mp3_128": true,
 	"mp3_320": true,
 	"flac":    true,
-	"best":    true,
 }
 
 type Options struct {

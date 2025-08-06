@@ -99,7 +99,7 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
 	case "mp3_320":
 		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
-	case "flac", "best":
+	case "flac":
 		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
 	}
 
