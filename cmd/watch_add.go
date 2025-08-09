@@ -43,7 +43,7 @@ var watchAddCmd = &cobra.Command{
 func init() {
 	watchCmd.AddCommand(watchAddCmd)
 
-	watchAddCmd.Flags().StringVarP(&opts.Quality, "quality", "q", "flac", "download quality [mp3_128, mp3_320, flac]")
+	watchAddCmd.Flags().StringVarP(&opts.Quality, "quality", "q", "mp3_320", "download quality [mp3_128, mp3_320, flac]")
 	watchAddCmd.Flags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	watchAddCmd.Flags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
 }
