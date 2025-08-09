@@ -179,6 +179,9 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	if err != nil {
 		return nil, fmt.Errorf("failed to get media format: %w", err)
 	}
+	if opts.Strict && strings.ToLower(mediaFormat) != opts.Quality {
+		return nil, fmt.Errorf("requested quality '%s' not available", opts.Quality)
+	}
 
 	if path, skip := c.shouldSkipDownload(ctx, song.ID, mediaFormat); skip {
 		return nil, SkipError{Path: path}

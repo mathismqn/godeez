@@ -29,6 +29,7 @@ func init() {
 	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "flac", "download quality [mp3_128, mp3_320, flac]")
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
+	downloadCmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the song download if the quality is not available")
 
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),
@@ -78,7 +79,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 
 	if resourceType == "artist" {
 		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
-		cmd.Short = fmt.Sprintf("Download top songs from an artist")
+		cmd.Short = "Download top songs from an artist"
 	}
 
 	return cmd

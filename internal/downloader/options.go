@@ -14,16 +14,23 @@ var validQualities = map[string]bool{
 type Options struct {
 	Quality string
 	Timeout time.Duration
-	BPM     bool
 	Limit   int
+	BPM     bool
+	Strict  bool
 }
 
 func (o *Options) Validate() error {
 	if !validQualities[o.Quality] {
 		return fmt.Errorf("invalid quality option: %s", o.Quality)
 	}
-	if o.Limit < 0 {
-		return fmt.Errorf("limit must be a non-negative integer")
+	if o.Timeout <= 0 {
+		return fmt.Errorf("timeout must be a positive duration")
+	}
+	if o.Limit <= 0 {
+		return fmt.Errorf("limit must be a positive integer")
+	}
+	if o.Limit > 100 {
+		return fmt.Errorf("limit must not exceed 100")
 	}
 
 	return nil
