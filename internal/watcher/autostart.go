@@ -12,7 +12,9 @@ func EnsureAutostart(homeDir string) error {
 		return nil
 	}
 
-	return installAutostart(homeDir)
+	// return installAutostart(homeDir)
+
+	return nil
 }
 
 func isAutostartInstalled(homeDir string) bool {
