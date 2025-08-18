@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-08-18
+
+### Added
+- New `artist` command to download an artist’s top tracks.
+- `--limit` flag for the `artist` command to restrict the number of tracks.
+- `--strict` flag for downloads: fail if the requested quality is unavailable.
+
+### Changed
+- Default download quality is now **MP3 320kbps**.
+
+### Removed
+- The `--quality=best` option. Fallback to lower quality is now the **default behavior**; use the new `--strict` flag if you want to prevent fallback.
+
+### Fixed
+- Handle error when `SNG_CONTRIBUTORS` metadata is empty.
+
 ## [1.1.1] - 2025-06-16
 
 ### Fixed

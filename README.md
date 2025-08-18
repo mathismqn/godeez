@@ -19,8 +19,8 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 
 ## Features
 
-* Download playlists and albums from Deezer
-* Select audio quality: MP3 128kbps, MP3 320kbps, or FLAC (⚠️ non-premium accounts are limited to 128kbps)
+* Download playlists, albums, and artists' top tracks from Deezer
+* Select audio quality: MP3 128kbps, MP3 320kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128kbps)
 * Automatically adds metadata tags to downloaded files
 * Fetch and tag songs with BPM and musical key
 * Smart skip system: avoids re-downloading already existing files using hashes and metadata
@@ -38,7 +38,7 @@ To install **GoDeez**, simply download the latest binary for your platform from 
 Example (Linux/macOS):
 ```bash
 # Move the downloaded binary to /usr/local/bin for easy access from anywhere
-mv godeez-1.1.0-linux-amd64 /usr/local/bin/godeez
+mv godeez-1.2.0-linux-amd64 /usr/local/bin/godeez
 ```
 
 ## Configuration
@@ -119,17 +119,17 @@ Usage:
   godeez download [command]
 
 Available Commands:
-  album       Download songs from album
-  playlist    Download songs from playlist
+  album       Download songs from an album
+  artist      Download top songs from an artist
+  playlist    Download songs from a playlist
 
 Flags:
       --bpm                fetch BPM/key and add to file tags
+      --config string      config file (default ~/.godeez/config.toml)
   -h, --help               help for download
-  -q, --quality string     download quality [mp3_128, mp3_320, flac, best] (default "best")
+  -q, --quality string     download quality [mp3_128, mp3_320, flac] (default "mp3_320")
+      --strict             fail the song download if the quality is not available
   -t, --timeout duration   timeout for each download (e.g. 10s, 1m, 2m30s) (default 2m0s)
-
-Global Flags:
-      --config string   config file (default ~/.godeez/config.toml)
 
 Use "godeez download [command] --help" for more information about a command.
 ```
