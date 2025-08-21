@@ -19,7 +19,7 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 
 ## Features
 
-* Download playlists, albums, and artists' top tracks from Deezer
+* Download playlists, albums, artists' top tracks, and individual tracks from Deezer
 * Select audio quality: MP3 128kbps, MP3 320kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128kbps)
 * Automatically adds metadata tags to downloaded files
 * Fetch and tag songs with BPM and musical key
@@ -122,6 +122,7 @@ Available Commands:
   album       Download songs from an album
   artist      Download top songs from an artist
   playlist    Download songs from a playlist
+  track       Download a single track
 
 Flags:
       --bpm                fetch BPM/key and add to file tags
@@ -132,6 +133,27 @@ Flags:
   -t, --timeout duration   timeout for each download (e.g. 10s, 1m, 2m30s) (default 2m0s)
 
 Use "godeez download [command] --help" for more information about a command.
+```
+
+### Examples
+
+Here are some examples of how to use the different download commands:
+
+```bash
+# Download an album
+godeez download album 12345678
+
+# Download a playlist
+godeez download playlist 87654321
+
+# Download top tracks from an artist
+godeez download artist 11223344 --limit 5
+
+# Download a single track
+godeez download track 98765432
+
+# Download with specific quality and BPM data
+godeez download track 98765432 --quality flac --bpm
 ```
 
 ## Contributing

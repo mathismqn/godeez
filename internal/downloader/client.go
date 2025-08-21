@@ -63,6 +63,8 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		resource = &deezer.Playlist{}
 	case "artist":
 		resource = &deezer.Artist{}
+	case "track":
+		resource = &deezer.Track{}
 	default:
 		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
 	}
