@@ -3,10 +3,7 @@ package deezer
 import (
 	"encoding/json"
 	"fmt"
-	"path"
 	"time"
-
-	"github.com/flytam/filenamify"
 )
 
 type Track struct {
@@ -64,15 +61,8 @@ func (t *Track) SetSongs(songs []*Song) {
 }
 
 func (t *Track) GetOutputDir(outputDir string) string {
-	if t.Results.Data == nil {
-		return outputDir
-	}
-
-	// For single tracks, create a simple "Singles" folder
-	base := "Singles"
-	base, _ = filenamify.Filenamify(base, filenamify.Options{})
-	outputDir = path.Join(outputDir, base)
-
+	// For tracks, return the base output directory since songs will handle their own paths
+	// The actual song paths will be: Artist/Album/Song
 	return outputDir
 }
 

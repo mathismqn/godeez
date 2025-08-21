@@ -20,6 +20,8 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 ## Features
 
 * Download playlists, albums, artists' top tracks, and individual tracks from Deezer
+* Organized tree structure: saves all music in `Artist/Album/Track` format for consistency
+* Playlist M3U files: automatically creates playlist files with relative paths when downloading playlists
 * Select audio quality: MP3 128kbps, MP3 320kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128kbps)
 * Automatically adds metadata tags to downloaded files
 * Fetch and tag songs with BPM and musical key
@@ -140,21 +142,49 @@ Use "godeez download [command] --help" for more information about a command.
 Here are some examples of how to use the different download commands:
 
 ```bash
-# Download an album
+# Download an album (saved as: Artist/Album/Tracks)
 godeez download album 12345678
 
-# Download a playlist
+# Download a playlist (songs distributed in tree + M3U file created)
 godeez download playlist 87654321
 
-# Download top tracks from an artist
+# Download top tracks from an artist (saved as: Artist/Various Albums/Tracks)
 godeez download artist 11223344 --limit 5
 
-# Download a single track
+# Download a single track (saved as: Artist/Album/Track)
 godeez download track 98765432
 
 # Download with specific quality and BPM data
 godeez download track 98765432 --quality flac --bpm
 ```
+
+## File Organization
+
+**GoDeez** organizes downloaded music in a predictable tree structure:
+
+```
+~/Music/GoDeez/
+├── Artist 1/
+│   ├── Album 1/
+│   │   ├── 01. Track 1.mp3
+│   │   └── 02. Track 2.mp3
+│   └── Album 2/
+│       ├── 01. Track 1.mp3
+│       └── 02. Track 2.mp3
+├── Artist 2/
+│   └── Album 1/
+│       ├── 01. Track 1.mp3
+│       └── 02. Track 2.mp3
+└── Playlists/
+    └── My Playlist/
+        └── My Playlist.m3u
+```
+
+### Key Features:
+- **Consistent Structure**: All downloads (albums, artists, tracks, playlists) follow the same `Artist/Album/Track` organization
+- **Smart Fallbacks**: If album information is missing, songs are placed in an "Unknown Album" folder
+- **Playlist Files**: When downloading playlists, an M3U file is created in `Playlists/[Playlist Name]/` with relative paths to the distributed songs
+- **Skip System Compatibility**: The existing skip system works seamlessly with the new structure using file hashes and metadata
 
 ## Contributing
 

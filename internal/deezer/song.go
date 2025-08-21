@@ -3,6 +3,7 @@ package deezer
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 
 	"github.com/flytam/filenamify"
 )
@@ -31,6 +32,8 @@ type Song struct {
 	Title        string       `json:"SNG_TITLE"`
 	Version      string       `json:"VERSION"`
 	Cover        string       `json:"ALB_PICTURE"`
+	AlbumTitle   string       `json:"ALB_TITLE"`
+	AlbumArtist  string       `json:"ALB_ART_NAME"`
 	Contributors Contributors `json:"SNG_CONTRIBUTORS"`
 	Duration     string       `json:"DURATION"`
 	Gain         string       `json:"GAIN"`
@@ -62,4 +65,38 @@ func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string
 	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
 
 	return fileName
+}
+
+// GetOrganizedPath returns the tree-structured path for this song: Artist/Album/Song
+func (s *Song) GetOrganizedPath(baseOutputDir string, media *Media) string {
+	ext := "mp3"
+	if media.Data[0].Media[0].Format == "FLAC" {
+		ext = "flac"
+	}
+
+	// Use album artist if available, fallback to song artist
+	artistName := s.AlbumArtist
+	if artistName == "" {
+		artistName = s.Artist
+	}
+
+	// Use album title if available, fallback to "Unknown Album"
+	albumName := s.AlbumTitle
+	if albumName == "" {
+		albumName = "Unknown Album"
+	}
+
+	// Create filename with track number for albums
+	trackNumber := ""
+	if s.TrackNumber != "" {
+		trackNumber = s.TrackNumber + ". "
+	}
+	fileName := fmt.Sprintf("%s%s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
+
+	// Sanitize all path components
+	artistName, _ = filenamify.Filenamify(artistName, filenamify.Options{})
+	albumName, _ = filenamify.Filenamify(albumName, filenamify.Options{})
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+
+	return path.Join(baseOutputDir, artistName, albumName, fileName)
 }
