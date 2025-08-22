@@ -30,6 +30,11 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 		t.addTag("TYER", album.Results.Data.PhysicalReleaseDate)
 		t.addTag("COMM", album.Results.Data.ProducerLine)
 		t.addTag("TRCK", song.TrackNumber)
+	} else {
+		t.addTag("TALB", song.AlbumTitle)
+		t.addTag("TPE2", song.Artist)
+		t.addTag("TYER", song.PhysicalReleaseDate)
+		t.addTag("TRCK", song.TrackNumber)
 	}
 
 	t.addTag("TIT2", song.Title)
@@ -39,6 +44,7 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 	t.addTag("TLEN", song.Duration)
 	t.addTXXXTag("GAIN", song.Gain)
 	t.addTXXXTag("ISRC", song.ISRC)
+	t.addTag("TCOP", song.Copyright)
 
 	t.addTag("TBPM", tempo)
 	t.addTag("TKEY", key)

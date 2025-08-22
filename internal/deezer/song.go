@@ -27,19 +27,21 @@ func (c *Contributors) UnmarshalJSON(data []byte) error {
 }
 
 type Song struct {
-	ID           string       `json:"SNG_ID"`
-	Artist       string       `json:"ART_NAME"`
-	Title        string       `json:"SNG_TITLE"`
-	Version      string       `json:"VERSION"`
-	Cover        string       `json:"ALB_PICTURE"`
-	AlbumTitle   string       `json:"ALB_TITLE"`
-	AlbumArtist  string       `json:"ALB_ART_NAME"`
-	Contributors Contributors `json:"SNG_CONTRIBUTORS"`
-	Duration     string       `json:"DURATION"`
-	Gain         string       `json:"GAIN"`
-	ISRC         string       `json:"ISRC"`
-	TrackNumber  string       `json:"TRACK_NUMBER"`
-	TrackToken   string       `json:"TRACK_TOKEN"`
+	ID                  string       `json:"SNG_ID"`
+	Artist              string       `json:"ART_NAME"`
+	Title               string       `json:"SNG_TITLE"`
+	Version             string       `json:"VERSION"`
+	Cover               string       `json:"ALB_PICTURE"`
+	AlbumTitle          string       `json:"ALB_TITLE"`
+	Contributors        Contributors `json:"SNG_CONTRIBUTORS"`
+	Duration            string       `json:"DURATION"`
+	Gain                string       `json:"GAIN"`
+	ISRC                string       `json:"ISRC"`
+	TrackNumber         string       `json:"TRACK_NUMBER"`
+	TrackToken          string       `json:"TRACK_TOKEN"`
+	DiskNumber          string       `json:"DISK_NUMBER"`
+	Copyright           string       `json:"COPYRIGHT"`
+	PhysicalReleaseDate string       `json:"PHYSICAL_RELEASE_DATE"`
 }
 
 func (s *Song) GetTitle() string {
@@ -75,10 +77,7 @@ func (s *Song) GetOrganizedPath(baseOutputDir string, media *Media) string {
 	}
 
 	// Use album artist if available, fallback to song artist
-	artistName := s.AlbumArtist
-	if artistName == "" {
-		artistName = s.Artist
-	}
+	artistName := s.Artist
 
 	// Use album title if available, fallback to "Unknown Album"
 	albumName := s.AlbumTitle
