@@ -20,7 +20,7 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 	if err != nil {
 		return err
 	}
-	song.Duration = fmt.Sprintf("%d", duration*1000)
+	tlen := fmt.Sprintf("%d", duration*1000)
 
 	if album, ok := resource.(*deezer.Album); ok {
 		t.addTag("TALB", album.Results.Data.Title)
@@ -41,7 +41,7 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 	t.addTag("TPE1", strings.Join(song.Contributors.MainArtists, ", "))
 	t.addTag("TCOM", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("TEXT", strings.Join(song.Contributors.Authors, ", "))
-	t.addTag("TLEN", song.Duration)
+	t.addTag("TLEN", tlen)
 	t.addTXXXTag("GAIN", song.Gain)
 	t.addTXXXTag("ISRC", song.ISRC)
 	t.addTag("TCOP", song.Copyright)
