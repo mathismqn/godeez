@@ -64,7 +64,7 @@ func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string
 	}
 
 	fileName := fmt.Sprintf("%s%s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
-	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 1000})
 
 	return fileName
 }
@@ -93,9 +93,9 @@ func (s *Song) GetOrganizedPath(baseOutputDir string, media *Media) string {
 	fileName := fmt.Sprintf("%s%s.%s", trackNumber, s.GetTitle(), ext)
 
 	// Sanitize all path components
-	artistName, _ = filenamify.Filenamify(artistName, filenamify.Options{})
-	albumName, _ = filenamify.Filenamify(albumName, filenamify.Options{})
-	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+	artistName, _ = filenamify.Filenamify(artistName, filenamify.Options{MaxLength: 1000})
+	albumName, _ = filenamify.Filenamify(albumName, filenamify.Options{MaxLength: 1000})
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 1000})
 
 	return path.Join(baseOutputDir, artistName, albumName, fileName)
 }

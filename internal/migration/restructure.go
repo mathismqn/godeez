@@ -199,9 +199,9 @@ func generateNewPath(oldPath, outputDir string) (string, error) {
 	fileName += ext
 
 	// Sanitize path components for filesystem safety
-	artist, _ = filenamify.Filenamify(artist, filenamify.Options{})
-	album, _ = filenamify.Filenamify(album, filenamify.Options{})
-	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+	artist, _ = filenamify.Filenamify(artist, filenamify.Options{MaxLength: 1000})
+	album, _ = filenamify.Filenamify(album, filenamify.Options{MaxLength: 1000})
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 1000})
 
 	// Build the new path: outputDir/Artist/Album/Track.ext
 	newPath := filepath.Join(outputDir, artist, album, fileName)
