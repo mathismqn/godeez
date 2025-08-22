@@ -181,12 +181,6 @@ godeez download track 98765432 --quality flac --bpm
         └── My Playlist.m3u
 ```
 
-### Key Features:
-- **Consistent Structure**: All downloads (albums, artists, tracks, playlists) follow the same `Artist/Album/Track` organization
-- **Smart Fallbacks**: If album information is missing, songs are placed in an "Unknown Album" folder
-- **Playlist Files**: When downloading playlists, an M3U file is created in `Playlists/[Playlist Name]/` with relative paths to the distributed songs
-- **Skip System Compatibility**: The existing skip system works seamlessly with the new structure using file hashes and metadata
-
 ## Contributing
 
 Contributions help make **GoDeez** a better tool for everyone, and any help is greatly appreciated.
