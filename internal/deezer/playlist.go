@@ -55,10 +55,10 @@ func (p *Playlist) SetSongs(s []*Song) {
 }
 
 func (p *Playlist) GetOutputDir(outputDir string) string {
-	p.Results.Data.Title, _ = filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
-	outputDir = path.Join(outputDir, p.Results.Data.Title)
-
-	return outputDir
+	// For playlists, create a playlist-specific folder for the M3U file
+	// The actual songs will be distributed in the tree structure: Artist/Album/Song
+	playlistName, _ := filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
+	return path.Join(outputDir, "Playlists", playlistName)
 }
 
 func (p *Playlist) Unmarshal(data []byte) error {

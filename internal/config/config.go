@@ -16,6 +16,7 @@ type Config struct {
 	SecretKey string `mapstructure:"secret_key"`
 	OutputDir string `mapstructure:"output_dir"`
 	HomeDir   string
+	ConfigDir string
 }
 
 func New(cfgPath string) (*Config, error) {
@@ -50,7 +51,10 @@ func New(cfgPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	cfg := &Config{HomeDir: homeDir}
+	cfg := &Config{
+		HomeDir:   homeDir,
+		ConfigDir: cfgDir,
+	}
 	if err := viper.Unmarshal(cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}

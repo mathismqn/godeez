@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -63,6 +64,8 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		resource = &deezer.Playlist{}
 	case "artist":
 		resource = &deezer.Artist{}
+	case "track":
+		resource = &deezer.Track{}
 	default:
 		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
 	}
@@ -161,6 +164,16 @@ Files saved to: %s
 		resourceOutputDir,
 	)
 
+	// Create M3U playlist file for playlists
+	if c.resourceType == "playlist" && downloaded > 0 {
+		if err := c.createM3UPlaylist(resource, resourceOutputDir); err != nil {
+			c.Logger.Warnf("Failed to create M3U playlist: %v\n", err)
+			fmt.Printf("Warning: Failed to create M3U playlist: %v\n", err)
+		} else {
+			fmt.Printf("Playlist file created: %s.m3u\n", resource.GetTitle())
+		}
+	}
+
 	return nil
 }
 
@@ -172,8 +185,13 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return nil, fmt.Errorf("failed to fetch media: %w", err)
 	}
 
-	fileName := song.GetFileName(c.resourceType, song, media)
-	outputPath := path.Join(outputDir, fileName)
+	// Use the organized tree structure for all songs
+	outputPath := song.GetOrganizedPath(c.appConfig.OutputDir, media)
+	
+	// Ensure the directory exists
+	if err := fileutil.EnsureDir(outputPath[:len(outputPath)-len(path.Base(outputPath))]); err != nil {
+		return nil, fmt.Errorf("failed to create output directory: %w", err)
+	}
 
 	mediaFormat, err := media.GetFormat()
 	if err != nil {
@@ -333,4 +351,79 @@ func (c *Client) initHashIndex(ctx context.Context) error {
 	})
 
 	return c.hashIndexErr
+}
+
+// createM3UPlaylist creates an M3U playlist file with relative paths to the distributed song files
+func (c *Client) createM3UPlaylist(resource deezer.Resource, playlistDir string) error {
+	songs := resource.GetSongs()
+	if len(songs) == 0 {
+		return fmt.Errorf("no songs to add to playlist")
+	}
+
+	playlistPath := path.Join(playlistDir, resource.GetTitle()+".m3u")
+	file, err := os.Create(playlistPath)
+	if err != nil {
+		return fmt.Errorf("failed to create playlist file: %w", err)
+	}
+	defer file.Close()
+
+	// Write M3U header
+	if _, err := file.WriteString("#EXTM3U\n"); err != nil {
+		return fmt.Errorf("failed to write M3U header: %w", err)
+	}
+
+	for _, song := range songs {
+		// Create a mock media object to determine file extension
+		// We'll assume mp3 for the M3U, but this should ideally check the actual downloaded format
+		mockMedia := &deezer.Media{
+			Data: []struct {
+				Media []struct {
+					Type    string              `json:"media_type"`
+					Cipher  deezer.Cipher       `json:"cipher"`
+					Format  string              `json:"format"`
+					Sources []deezer.Source     `json:"sources"`
+				}
+				Errors []deezer.MediaError `json:"errors"`
+			}{
+				{
+					Media: []struct {
+						Type    string              `json:"media_type"`
+						Cipher  deezer.Cipher       `json:"cipher"`
+						Format  string              `json:"format"`
+						Sources []deezer.Source     `json:"sources"`
+					}{
+						{Format: "MP3_320"},
+					},
+				},
+			},
+		}
+
+		// Get the organized path for this song
+		songPath := song.GetOrganizedPath(c.appConfig.OutputDir, mockMedia)
+		
+		// Calculate relative path from playlist directory to song file
+		relativePath, err := filepath.Rel(playlistDir, songPath)
+		if err != nil {
+			// If relative path calculation fails, use absolute path
+			relativePath = songPath
+		}
+
+		// Write track info
+		duration := "0"
+		if song.Duration != "" {
+			duration = song.Duration
+		}
+		
+		trackInfo := fmt.Sprintf("#EXTINF:%s,%s - %s\n", duration, song.Artist, song.GetTitle())
+		if _, err := file.WriteString(trackInfo); err != nil {
+			return fmt.Errorf("failed to write track info: %w", err)
+		}
+
+		// Write file path
+		if _, err := file.WriteString(relativePath + "\n"); err != nil {
+			return fmt.Errorf("failed to write file path: %w", err)
+		}
+	}
+
+	return nil
 }

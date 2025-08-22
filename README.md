@@ -19,7 +19,9 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 
 ## Features
 
-* Download playlists, albums, and artists' top tracks from Deezer
+* Download playlists, albums, artists' top tracks, and individual tracks from Deezer
+* Organized tree structure: saves all music in `Artist/Album/Track` format for consistency
+* Playlist M3U files: automatically creates playlist files with relative paths when downloading playlists
 * Select audio quality: MP3 128kbps, MP3 320kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128kbps)
 * Automatically adds metadata tags to downloaded files
 * Fetch and tag songs with BPM and musical key
@@ -102,6 +104,7 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   download    Download songs from Deezer
   help        Help about any command
+  migrate     Run database and file structure migrations
 
 Flags:
       --config string   config file (default ~/.godeez/config.toml)
@@ -122,6 +125,7 @@ Available Commands:
   album       Download songs from an album
   artist      Download top songs from an artist
   playlist    Download songs from a playlist
+  track       Download a single track
 
 Flags:
       --bpm                fetch BPM/key and add to file tags
@@ -132,6 +136,49 @@ Flags:
   -t, --timeout duration   timeout for each download (e.g. 10s, 1m, 2m30s) (default 2m0s)
 
 Use "godeez download [command] --help" for more information about a command.
+```
+
+### Examples
+
+Here are some examples of how to use the different download commands:
+
+```bash
+# Download an album (saved as: Artist/Album/Tracks)
+godeez download album 12345678
+
+# Download a playlist (songs distributed in tree + M3U file created)
+godeez download playlist 87654321
+
+# Download top tracks from an artist (saved as: Artist/Various Albums/Tracks)
+godeez download artist 11223344 --limit 5
+
+# Download a single track (saved as: Artist/Album/Track)
+godeez download track 98765432
+
+# Download with specific quality and BPM data
+godeez download track 98765432 --quality flac --bpm
+```
+
+## File Organization
+
+**GoDeez** organizes downloaded music in a predictable tree structure:
+
+```
+~/Music/GoDeez/
+├── Artist 1/
+│   ├── Album 1/
+│   │   ├── 01. Track 1.mp3
+│   │   └── 02. Track 2.mp3
+│   └── Album 2/
+│       ├── 01. Track 1.mp3
+│       └── 02. Track 2.mp3
+├── Artist 2/
+│   └── Album 1/
+│       ├── 01. Track 1.mp3
+│       └── 02. Track 2.mp3
+└── Playlists/
+    └── My Playlist/
+        └── My Playlist.m3u
 ```
 
 ## Contributing
