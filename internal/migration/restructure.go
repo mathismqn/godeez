@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/flytam/filenamify"
+	"github.com/mathismqn/godeez/internal/tags"
 	"go.etcd.io/bbolt"
 )
 
@@ -20,20 +22,16 @@ func RegisterAllMigrations(registry *MigrationRegistry) {
 		Description: "Migrate from flat/artist-album structure to Artist/Album/Track tree structure",
 		UpFunc:      migrateToTreeStructure,
 	})
-	
-	// Register the remove redundant artist migration
-	redundantArtistMigration := &RemoveRedundantArtistMigration{}
-	registry.Register(Migration{
-		ID:          redundantArtistMigration.ID(),
-		Name:        redundantArtistMigration.Name(),
-		Description: redundantArtistMigration.Description(),
-		UpFunc:      redundantArtistMigration.Run,
-	})
 }
 
 // migrateToTreeStructure handles the migration from old structure to new tree structure
-func migrateToTreeStructure(db *bbolt.DB, cfgDir string) error {
+func migrateToTreeStructure(db *bbolt.DB, cfgDir string, dryRun bool) error {
 	log.Println("Starting directory restructure migration...")
+	prefix := ""
+	if dryRun {
+		prefix = "[DRY RUN] "
+		log.Println("DRY RUN: Showing what would be done without making changes")
+	}
 
 	// Get output directory from config
 	outputDir, err := getOutputDirFromConfig(cfgDir)
@@ -112,10 +110,17 @@ func migrateToTreeStructure(db *bbolt.DB, cfgDir string) error {
 	// Perform file moves
 	successfulMoves := 0
 	for i, moveOp := range filesToMove {
-		log.Printf("Moving file %d/%d: %s", i+1, len(filesToMove), filepath.Base(moveOp.OldPath))
+		log.Printf(prefix+"Moving file %d/%d:", i+1, len(filesToMove))
+		log.Printf("    FROM: %s", moveOp.OldPath)
+		log.Printf("    TO:   %s", moveOp.NewPath)
+
+		if dryRun {
+			successfulMoves++
+			continue
+		}
 
 		if err := moveFile(moveOp.OldPath, moveOp.NewPath); err != nil {
-			log.Printf("Warning: Failed to move %s to %s: %v", moveOp.OldPath, moveOp.NewPath, err)
+			log.Printf("Warning: Failed to move file: %v", err)
 			continue
 		}
 
@@ -124,14 +129,18 @@ func migrateToTreeStructure(db *bbolt.DB, cfgDir string) error {
 		// Update database record
 		if err := updateDatabaseRecord(db, moveOp.SongID, moveOp.NewPath); err != nil {
 			log.Printf("Warning: Failed to update database record for %s: %v", moveOp.SongID, err)
+		} else {
+			log.Printf("Database record updated for song %s", moveOp.SongID)
 		}
 	}
 
-	log.Printf("Migration completed: %d/%d files moved successfully", successfulMoves, len(filesToMove))
+	log.Printf(prefix+"Migration completed: %d/%d files moved successfully", successfulMoves, len(filesToMove))
+	if !dryRun {
 
-	// Clean up empty directories
-	if err := cleanupEmptyDirectories(outputDir); err != nil {
-		log.Printf("Warning: Failed to clean up empty directories: %v", err)
+		// Clean up empty directories
+		if err := cleanupEmptyDirectories(outputDir); err != nil {
+			log.Printf("Warning: Failed to clean up empty directories: %v", err)
+		}
 	}
 
 	return nil
@@ -151,66 +160,58 @@ type FileMoveOperation struct {
 	SongID  string
 }
 
-// generateNewPath creates the new tree-structured path from the old path
+// generateNewPath creates the new tree-structured path from the old path using ID3 tags
 func generateNewPath(oldPath, outputDir string) (string, error) {
-	fileName := filepath.Base(oldPath)
-	
-	// Parse filename to extract artist and track info
-	// Expected formats:
-	// "01. Artist - Track.mp3" (from albums)
-	// "Artist - Track.mp3" (from singles/playlists)
-	
-	ext := filepath.Ext(fileName)
-	nameWithoutExt := strings.TrimSuffix(fileName, ext)
-	
-	// Remove track number if present
-	trackNumRemoved := nameWithoutExt
-	if strings.Contains(nameWithoutExt, ". ") {
-		parts := strings.SplitN(nameWithoutExt, ". ", 2)
-		if len(parts) == 2 {
-			trackNumRemoved = parts[1]
+	// Read metadata from the audio file
+	metadata, err := tags.ReadMetadata(oldPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read metadata from %s: %w", oldPath, err)
+	}
+
+	// Extract required fields
+	artist := strings.TrimSpace(metadata.AlbumArtist)
+	if artist == "" {
+		artist = strings.TrimSpace(metadata.Artist)
+	}
+	if artist == "" {
+		return "", fmt.Errorf("no artist information found in metadata for %s", oldPath)
+	}
+
+	album := strings.TrimSpace(metadata.Album)
+	if album == "" {
+		album = "Unknown Album"
+	}
+
+	title := strings.TrimSpace(metadata.Title)
+	if title == "" {
+		// Fall back to filename without extension if no title in metadata
+		fileName := filepath.Base(oldPath)
+		title = strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	}
+
+	// Format the filename with track number if available
+	fileName := title
+	if metadata.TrackNumber != "" {
+		// Parse track number to handle formats like "1/12" or "01"
+		trackNumStr := strings.Split(metadata.TrackNumber, "/")[0]
+		if trackNum, err := strconv.Atoi(trackNumStr); err == nil {
+			fileName = fmt.Sprintf("%02d. %s", trackNum, title)
 		}
 	}
-	
-	// Split artist and track
-	if !strings.Contains(trackNumRemoved, " - ") {
-		return "", fmt.Errorf("cannot parse artist and track from filename: %s", fileName)
-	}
-	
-	parts := strings.SplitN(trackNumRemoved, " - ", 2)
-	if len(parts) != 2 {
-		return "", fmt.Errorf("invalid filename format: %s", fileName)
-	}
-	
-	artist := strings.TrimSpace(parts[0])
-	// Track name is embedded in the filename, so we don't need to extract it separately
-	
-	// Determine album from the parent directory or use "Unknown Album"
-	album := "Unknown Album"
-	oldDir := filepath.Dir(oldPath)
-	
-	// If the parent directory is not the base output directory, use it as album
-	if oldDir != outputDir && filepath.Base(oldDir) != "GoDeez" {
-		parentDirName := filepath.Base(oldDir)
-		
-		// Check if parent directory looks like "Artist - Album" format
-		if strings.Contains(parentDirName, " - ") {
-			albumParts := strings.SplitN(parentDirName, " - ", 2)
-			if len(albumParts) == 2 {
-				album = strings.TrimSpace(albumParts[1])
-			}
-		} else if parentDirName != "Singles" && parentDirName != "Playlists" {
-			// Use the directory name as album if it's not a known single/playlist folder
-			album = parentDirName
-		}
-	}
-	
-	// Sanitize path components
+
+	// Add file extension
+	ext := filepath.Ext(oldPath)
+	fileName += ext
+
+	// Sanitize path components for filesystem safety
 	artist, _ = filenamify.Filenamify(artist, filenamify.Options{})
 	album, _ = filenamify.Filenamify(album, filenamify.Options{})
 	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
-	
-	return filepath.Join(outputDir, artist, album, fileName), nil
+
+	// Build the new path: outputDir/Artist/Album/Track.ext
+	newPath := filepath.Join(outputDir, artist, album, fileName)
+
+	return newPath, nil
 }
 
 // moveFile moves a file from oldPath to newPath, creating directories as needed
@@ -220,17 +221,17 @@ func moveFile(oldPath, newPath string) error {
 	if err := os.MkdirAll(newDir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory %s: %w", newDir, err)
 	}
-	
+
 	// Check if target file already exists
 	if _, err := os.Stat(newPath); err == nil {
 		return fmt.Errorf("target file already exists: %s", newPath)
 	}
-	
+
 	// Move the file
 	if err := os.Rename(oldPath, newPath); err != nil {
 		return fmt.Errorf("failed to move file: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -241,27 +242,27 @@ func updateDatabaseRecord(db *bbolt.DB, songID, newPath string) error {
 		if bucket == nil {
 			return fmt.Errorf("tracks bucket not found")
 		}
-		
+
 		// Get existing record
 		data := bucket.Get([]byte(songID))
 		if data == nil {
 			return fmt.Errorf("record not found for song ID %s", songID)
 		}
-		
+
 		var record DownloadRecord
 		if err := json.Unmarshal(data, &record); err != nil {
 			return err
 		}
-		
+
 		// Update path
 		record.Path = newPath
-		
+
 		// Save updated record
 		updatedData, err := json.Marshal(record)
 		if err != nil {
 			return err
 		}
-		
+
 		return bucket.Put([]byte(songID), updatedData)
 	})
 }
@@ -272,22 +273,22 @@ func cleanupEmptyDirectories(outputDir string) error {
 		if err != nil {
 			return nil // Continue despite errors
 		}
-		
+
 		if !info.IsDir() || path == outputDir {
 			return nil
 		}
-		
+
 		// Check if directory is empty
 		entries, err := os.ReadDir(path)
 		if err != nil {
 			return nil // Continue despite errors
 		}
-		
+
 		if len(entries) == 0 {
 			log.Printf("Removing empty directory: %s", path)
 			os.Remove(path) // Ignore errors
 		}
-		
+
 		return nil
 	})
 }
@@ -295,17 +296,17 @@ func cleanupEmptyDirectories(outputDir string) error {
 // getOutputDirFromConfig reads the output directory from config file
 func getOutputDirFromConfig(cfgDir string) (string, error) {
 	configPath := filepath.Join(cfgDir, "config.toml")
-	
+
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return "", nil // Config doesn't exist, will use default
 	}
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read config file: %w", err)
 	}
-	
+
 	// Simple TOML parsing for output_dir
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
@@ -321,6 +322,6 @@ func getOutputDirFromConfig(cfgDir string) (string, error) {
 			}
 		}
 	}
-	
+
 	return "", nil // No output_dir specified in config
 }

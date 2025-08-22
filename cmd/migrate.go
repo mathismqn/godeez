@@ -23,8 +23,12 @@ This command will:
 - Clean up empty directories after migration
 
 The migration is safe and will preserve your existing files. If a migration fails, 
-the files and database will remain in their current state.`,
+the files and database will remain in their current state.
+
+Use --dry-run to preview what changes would be made without actually performing them.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("failed to get home directory: %w", err)
@@ -56,14 +60,24 @@ the files and database will remain in their current state.`,
 		}
 
 		if len(pending) == 0 {
-			fmt.Println("✅ No migrations needed. Your GoDeez installation is up to date!")
+			fmt.Println("No migrations needed. Your GoDeez installation is up to date!")
 			return nil
 		}
 
-		fmt.Printf("📋 Found %d pending migration(s):\n\n", len(pending))
+		fmt.Printf("Found %d pending migration(s):\n\n", len(pending))
 		for _, mig := range pending {
 			fmt.Printf("  %d. %s\n", mig.ID, mig.Name)
 			fmt.Printf("     %s\n\n", mig.Description)
+		}
+
+		// In dry run mode, don't ask for confirmation
+		if dryRun {
+			fmt.Println("Running in DRY RUN mode - no changes will be made to files or database")
+			if err := registry.RunMigrations(db, appConfig.ConfigDir, dryRun); err != nil {
+				return fmt.Errorf("migration preview failed: %w", err)
+			}
+			fmt.Println("Dry run completed successfully!")
+			return nil
 		}
 
 		// Ask for confirmation
@@ -79,11 +93,11 @@ the files and database will remain in their current state.`,
 			return nil
 		}
 
-		if err := registry.RunMigrations(db, appConfig.ConfigDir); err != nil {
+		if err := registry.RunMigrations(db, appConfig.ConfigDir, dryRun); err != nil {
 			return fmt.Errorf("migration failed: %w", err)
 		}
 
-		fmt.Println("✅ All migrations completed successfully!")
+		fmt.Println("All migrations completed successfully!")
 		fmt.Println("\nYour music library has been updated to the new tree structure:")
 		fmt.Println("  Artist/Album/Track")
 		fmt.Println("\nAny playlists you download in the future will create M3U files")
@@ -129,9 +143,9 @@ var migrateStatusCmd = &cobra.Command{
 		}
 
 		if len(pending) == 0 {
-			fmt.Println("✅ All migrations have been applied. Your GoDeez installation is up to date!")
+			fmt.Println("All migrations have been applied. Your GoDeez installation is up to date!")
 		} else {
-			fmt.Printf("📋 %d pending migration(s):\n\n", len(pending))
+			fmt.Printf("%d pending migration(s):\n\n", len(pending))
 			for _, mig := range pending {
 				fmt.Printf("  %d. %s\n", mig.ID, mig.Name)
 				fmt.Printf("     %s\n\n", mig.Description)
@@ -148,4 +162,5 @@ func init() {
 	migrateCmd.AddCommand(migrateStatusCmd)
 
 	migrateCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "config file (default ~/.godeez/config.toml)")
+	migrateCmd.Flags().Bool("dry-run", false, "preview what changes would be made without actually performing them")
 }

@@ -15,7 +15,7 @@ type Migration struct {
 	ID          int
 	Name        string
 	Description string
-	UpFunc      func(*bbolt.DB, string) error // DB and config directory
+	UpFunc      func(*bbolt.DB, string, bool) error // DB, config directory, and dry run flag
 }
 
 // MigrationRecord tracks applied migrations in the database
@@ -46,7 +46,7 @@ func (r *MigrationRegistry) Register(migration Migration) {
 }
 
 // RunMigrations executes all pending migrations
-func (r *MigrationRegistry) RunMigrations(db *bbolt.DB, cfgDir string) error {
+func (r *MigrationRegistry) RunMigrations(db *bbolt.DB, cfgDir string, dryRun bool) error {
 	// Sort migrations by ID
 	sort.Slice(r.migrations, func(i, j int) bool {
 		return r.migrations[i].ID < r.migrations[j].ID
@@ -72,14 +72,19 @@ func (r *MigrationRegistry) RunMigrations(db *bbolt.DB, cfgDir string) error {
 
 		log.Printf("Running migration %d: %s", migration.ID, migration.Name)
 		log.Printf("Description: %s", migration.Description)
+		if dryRun {
+			log.Printf("DRY RUN MODE: No changes will be made to files or database")
+		}
 
-		if err := migration.UpFunc(db, cfgDir); err != nil {
+		if err := migration.UpFunc(db, cfgDir, dryRun); err != nil {
 			return fmt.Errorf("migration %d (%s) failed: %w", migration.ID, migration.Name, err)
 		}
 
-		// Record successful migration
-		if err := r.recordMigration(db, migration); err != nil {
-			return fmt.Errorf("failed to record migration %d: %w", migration.ID, err)
+		// Record successful migration (skip in dry run mode)
+		if !dryRun {
+			if err := r.recordMigration(db, migration); err != nil {
+				return fmt.Errorf("failed to record migration %d: %w", migration.ID, err)
+			}
 		}
 
 		log.Printf("Migration %d (%s) completed successfully", migration.ID, migration.Name)
