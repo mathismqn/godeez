@@ -72,7 +72,7 @@ func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string
 // GetOrganizedPath returns the tree-structured path for this song: Artist/Album/Song
 func (s *Song) GetOrganizedPath(baseOutputDir string, media *Media) string {
 	ext := "mp3"
-	if media.Data[0].Media[0].Format == "FLAC" {
+	if len(media.Data) > 0 && len(media.Data[0].Media) > 0 && media.Data[0].Media[0].Format == "FLAC" {
 		ext = "flac"
 	}
 
