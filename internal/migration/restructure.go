@@ -20,6 +20,15 @@ func RegisterAllMigrations(registry *MigrationRegistry) {
 		Description: "Migrate from flat/artist-album structure to Artist/Album/Track tree structure",
 		UpFunc:      migrateToTreeStructure,
 	})
+	
+	// Register the remove redundant artist migration
+	redundantArtistMigration := &RemoveRedundantArtistMigration{}
+	registry.Register(Migration{
+		ID:          redundantArtistMigration.ID(),
+		Name:        redundantArtistMigration.Name(),
+		Description: redundantArtistMigration.Description(),
+		UpFunc:      redundantArtistMigration.Run,
+	})
 }
 
 // migrateToTreeStructure handles the migration from old structure to new tree structure

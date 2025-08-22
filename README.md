@@ -104,6 +104,7 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   download    Download songs from Deezer
   help        Help about any command
+  migrate     Run database and file structure migrations
 
 Flags:
       --config string   config file (default ~/.godeez/config.toml)

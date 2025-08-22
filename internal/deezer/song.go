@@ -91,7 +91,7 @@ func (s *Song) GetOrganizedPath(baseOutputDir string, media *Media) string {
 	if s.TrackNumber != "" {
 		trackNumber = s.TrackNumber + ". "
 	}
-	fileName := fmt.Sprintf("%s%s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
+	fileName := fmt.Sprintf("%s%s.%s", trackNumber, s.GetTitle(), ext)
 
 	// Sanitize all path components
 	artistName, _ = filenamify.Filenamify(artistName, filenamify.Options{})
