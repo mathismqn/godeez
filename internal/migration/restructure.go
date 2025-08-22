@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/flytam/filenamify"
@@ -192,11 +191,7 @@ func generateNewPath(oldPath, outputDir string) (string, error) {
 	// Format the filename with track number if available
 	fileName := title
 	if metadata.TrackNumber != "" {
-		// Parse track number to handle formats like "1/12" or "01"
-		trackNumStr := strings.Split(metadata.TrackNumber, "/")[0]
-		if trackNum, err := strconv.Atoi(trackNumStr); err == nil {
-			fileName = fmt.Sprintf("%02d. %s", trackNum, title)
-		}
+		fileName = fmt.Sprintf("%s. %s", metadata.TrackNumber, title)
 	}
 
 	// Add file extension

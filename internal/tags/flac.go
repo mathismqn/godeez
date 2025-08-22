@@ -39,7 +39,7 @@ func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover 
 		t.addTag("DISCNUMBER", song.DiskNumber)
 	}
 
-	t.addTag("TITLE", song.Title)
+	t.addTag("TITLE", song.GetTitle())
 	t.addTag("ARTIST", strings.Join(song.Contributors.MainArtists, ", "))
 	t.addTag("COMPOSER", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("LYRICIST", strings.Join(song.Contributors.Authors, ", "))
