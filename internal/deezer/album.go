@@ -19,6 +19,7 @@ type Album struct {
 			PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
 			Label               string `json:"LABEL_NAME"`
 			ProducerLine        string `json:"PRODUCER_LINE"`
+			Copyright           string `json:"COPYRIGHT"`
 			Duration            string `json:"DURATION"`
 		} `json:"DATA"`
 		Songs struct {

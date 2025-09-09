@@ -23,17 +23,18 @@ func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover 
 			album.Results.Data.PhysicalReleaseDate = dateParts[0]
 		}
 
-		t.addTag("ALBUM", album.Results.Data.Title)
+		t.addTag("TRACKNUMBER", song.TrackNumber)
 		t.addTag("ALBUMARTIST", album.Results.Data.Artist)
+		t.addTag("ALBUM", album.Results.Data.Title)
 		t.addTag("PUBLISHER", album.Results.Data.Label)
 		t.addTag("ORIGINALDATE", album.Results.Data.OriginalReleaseDate)
 		t.addTag("DATE", album.Results.Data.PhysicalReleaseDate)
 		t.addTag("COMMENT", album.Results.Data.ProducerLine)
-		t.addTag("TRACKNUMBER", song.TrackNumber)
+		t.addTag("COPYRIGHT", album.Results.Data.Copyright)
 	}
 
-	t.addTag("TITLE", song.Title)
 	t.addTag("ARTIST", strings.Join(song.Contributors.MainArtists, ", "))
+	t.addTag("TITLE", song.Title)
 	t.addTag("COMPOSER", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("LYRICIST", strings.Join(song.Contributors.Authors, ", "))
 	t.addTag("REPLAYGAIN_TRACK_GAIN", song.Gain)
