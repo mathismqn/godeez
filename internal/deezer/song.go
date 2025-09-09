@@ -48,9 +48,9 @@ func (s *Song) GetTitle() string {
 	return songTitle
 }
 
-func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string {
+func (s *Song) GetFileName(resourceType, mediaFormat string, song *Song) string {
 	ext := "mp3"
-	if media.Data[0].Media[0].Format == "FLAC" {
+	if mediaFormat == "FLAC" {
 		ext = "flac"
 	}
 	trackNumber := ""
@@ -59,7 +59,7 @@ func (s *Song) GetFileName(resourceType string, song *Song, media *Media) string
 	}
 
 	fileName := fmt.Sprintf("%s%s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
-	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{})
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 255})
 
 	return fileName
 }

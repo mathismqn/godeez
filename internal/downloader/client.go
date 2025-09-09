@@ -172,13 +172,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return nil, fmt.Errorf("failed to fetch media: %w", err)
 	}
 
-	fileName := song.GetFileName(c.resourceType, song, media)
-	outputPath := path.Join(outputDir, fileName)
-
-	mediaFormat, err := media.GetFormat()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get media format: %w", err)
-	}
+	mediaFormat := media.GetFormat()
 	if opts.Strict && strings.ToLower(mediaFormat) != opts.Quality {
 		return nil, fmt.Errorf("requested quality '%s' not available", opts.Quality)
 	}
@@ -210,6 +204,9 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
+
+	fileName := song.GetFileName(c.resourceType, mediaFormat, song)
+	outputPath := path.Join(outputDir, fileName)
 
 	key := crypto.GetKey(c.appConfig.SecretKey, song.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {

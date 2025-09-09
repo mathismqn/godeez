@@ -137,12 +137,17 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 
 		return nil, fmt.Errorf("%s", media.Errors[0].Message)
 	}
+
 	if len(media.Data) > 0 && len(media.Data[0].Errors) > 0 {
 		if media.Data[0].Errors[0].Code == 2002 {
 			return nil, fmt.Errorf("invalid track token")
 		}
 
 		return nil, fmt.Errorf("%s", media.Data[0].Errors[0].Message)
+	}
+
+	if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
+		return nil, fmt.Errorf("no sources found")
 	}
 
 	return &media, nil
@@ -169,11 +174,7 @@ func (c *Client) FetchCoverImage(ctx context.Context, song *Song) ([]byte, error
 }
 
 func (c *Client) GetMediaStream(ctx context.Context, media *Media, songID string) (io.ReadCloser, error) {
-	url, err := media.GetURL()
-	if err != nil {
-		return nil, err
-	}
-
+	url := media.GetURL()
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
