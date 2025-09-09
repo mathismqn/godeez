@@ -34,7 +34,7 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 	}
 
 	t.addTag("TPE1", strings.Join(song.Contributors.MainArtists, ", "))
-	t.addTag("TIT2", song.Title)
+	t.addTag("TIT2", song.GetTitle())
 	t.addTag("TCOM", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("TEXT", strings.Join(song.Contributors.Authors, ", "))
 	t.addTag("TLEN", song.Duration)

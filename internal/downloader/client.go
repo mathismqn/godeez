@@ -98,12 +98,13 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 			return ctx.Err()
 		}
 
+		songTitle := song.GetTitle()
 		trackProgress := fmt.Sprintf("[%d/%d]", i+1, len(songs))
 
 		sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		sp.Writer = os.Stdout
 		sp.Prefix = trackProgress + " "
-		sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, song.Title)
+		sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, songTitle)
 		sp.Start()
 
 		warnings, err := c.downloadSong(ctx, resource, song, opts, resourceOutputDir)
@@ -116,13 +117,13 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 
 			if path, ok := IsSkipError(err); ok {
 				skipped++
-				fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n", trackProgress, song.Artist, song.Title, path)
+				fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n", trackProgress, song.Artist, songTitle, path)
 				continue
 			}
 
 			failed++
-			c.Logger.Errorf("Failed to download %s - %s: %v\n", song.Artist, song.Title, err)
-			fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, song.Title, err)
+			c.Logger.Errorf("Failed to download %s - %s: %v\n", song.Artist, songTitle, err)
+			fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, songTitle, err)
 
 			continue
 		}
@@ -133,8 +134,8 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		}
 
 		downloaded++
-		c.Logger.Infof("Downloaded %s - %s\n", song.Artist, song.Title)
-		fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, song.Title)
+		c.Logger.Infof("Downloaded %s - %s\n", song.Artist, songTitle)
+		fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, songTitle)
 
 		for _, w := range warnings {
 			c.Logger.Warnf("Warning: %s\n", w)
