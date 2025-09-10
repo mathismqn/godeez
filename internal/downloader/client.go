@@ -63,6 +63,8 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		resource = &deezer.Playlist{}
 	case "artist":
 		resource = &deezer.Artist{}
+	case "track":
+		resource = &deezer.Track{}
 	default:
 		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
 	}
@@ -73,6 +75,9 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 
 	songs := resource.GetSongs()
 	if len(songs) == 0 {
+		if c.resourceType == "track" {
+			return fmt.Errorf("track with ID %s not found", id)
+		}
 		return fmt.Errorf("%s has no songs", c.resourceType)
 	}
 	if c.resourceType == "artist" && len(songs) > opts.Limit {
@@ -87,7 +92,9 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	}
 
 	startTime := time.Now()
-	fmt.Printf("%s\n\nStarting download...\n\n", resource)
+	if c.resourceType != "track" {
+		fmt.Printf("%s\n\nStarting download...\n\n", resource)
+	}
 
 	downloaded := 0
 	skipped := 0
@@ -146,7 +153,9 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 	if downloaded > 0 || failed > 0 {
 		c.Logger.Infof("Playlist %s (%s): %d downloaded, %d skipped, %d failed\n", resource.GetTitle(), id, downloaded, skipped, failed)
 	}
-	fmt.Printf(`
+
+	if c.resourceType != "track" {
+		fmt.Printf(`
 ================== [ Summary ] ==================
 Downloaded:     %d
 Skipped:        %d
@@ -155,12 +164,13 @@ Elapsed time:   %s
 Files saved to: %s
 =================================================
 `,
-		downloaded,
-		skipped,
-		failed,
-		time.Since(startTime).Round(time.Second),
-		resourceOutputDir,
-	)
+			downloaded,
+			skipped,
+			failed,
+			time.Since(startTime).Round(time.Second),
+			resourceOutputDir,
+		)
+	}
 
 	return nil
 }
