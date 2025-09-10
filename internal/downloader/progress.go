@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"time"
 
@@ -109,5 +110,15 @@ Files saved to: %s
 			elapsed.Round(time.Second),
 			outputDir,
 		)
+
+		if pt.stats.downloaded > 0 {
+			pt.showSupportMessage()
+		}
+	}
+}
+
+func (pt *progressTracker) showSupportMessage() {
+	if rand.Float64() < 0.1 {
+		fmt.Printf("\n💖 Enjoying GoDeez? Give us a ⭐ on GitHub: https://github.com/mathismqn/godeez\n")
 	}
 }

@@ -13,6 +13,7 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 [Configuration](#configuration) •
 [Usage](#usage) •
 [Contributing](#contributing) •
+[Support](#⭐-support-the-project) •
 [License](#license)
 
 </div>
@@ -163,6 +164,15 @@ Whether it’s a bug fix, a new feature, or improving documentation, your input 
 
 If you have an idea for improvement, feel free to fork the repository and submit a pull request. You can also open an issue if you spot a bug or have a feature suggestion.
 Every bit of support counts, so don’t forget to give the project a star if you enjoy using it. Thank you for helping make this project better!
+
+## ⭐ Support the Project
+
+If **GoDeez** helps you enjoy your music collection, please consider giving it a star!
+
+**Why star us?**
+- Helps more music lovers discover the project  
+- Shows appreciation for the work and motivates development
+- Takes just one click but means the world to us!
 
 ## License
 
