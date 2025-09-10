@@ -1,4 +1,4 @@
-package bpm
+package provider
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	neturl "net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,30 +14,32 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type Metrics struct {
+type BPMProvider struct{}
+
+type BPMKey struct {
 	BPM string
 	Key string
 }
 
-func FetchMetrics(ctx context.Context, httpClient *http.Client, artist, title, duration string) (*Metrics, error) {
-	url, err := findSongURL(ctx, httpClient, artist, title, duration)
+func (p BPMProvider) Fetch(ctx context.Context, httpClient *http.Client, artist, title, duration string) (BPMKey, error) {
+	url, err := p.findSongURL(ctx, httpClient, artist, title, duration)
 	if err != nil {
-		return nil, err
+		return BPMKey{}, err
 	}
 
-	html, err := fetchPage(ctx, httpClient, url)
+	html, err := p.fetchPage(ctx, httpClient, url)
 	if err != nil {
-		return nil, err
+		return BPMKey{}, err
 	}
 
-	return parseMetrics(html)
+	return p.parse(html)
 }
 
-func findSongURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
+func (p BPMProvider) findSongURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
 	rootUrl := "https://songbpm.com"
 	reqUrl := rootUrl + "/searches"
 
-	values := url.Values{}
+	values := neturl.Values{}
 	values.Add("query", fmt.Sprintf("%s %s", artist, title))
 
 	req, err := http.NewRequestWithContext(ctx, "POST", reqUrl, bytes.NewBufferString(values.Encode()))
@@ -90,12 +92,13 @@ func findSongURL(ctx context.Context, httpClient *http.Client, artist, title, du
 		}
 
 		foundDuration := minutes*60 + seconds
-		duration, err := strconv.Atoi(duration)
+		wantDuration, err := strconv.Atoi(duration)
 		if err != nil {
 			return true
 		}
 
-		if foundDuration <= (duration-2) || foundDuration >= (duration+2) {
+		const durationToleranceSec = 2
+		if foundDuration <= (wantDuration-durationToleranceSec) || foundDuration >= (wantDuration+durationToleranceSec) {
 			return true
 		}
 
@@ -112,7 +115,7 @@ func findSongURL(ctx context.Context, httpClient *http.Client, artist, title, du
 	return rootUrl + url, nil
 }
 
-func fetchPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
+func (p BPMProvider) fetchPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", err
@@ -136,7 +139,7 @@ func fetchPage(ctx context.Context, httpClient *http.Client, url string) (string
 	return string(body), nil
 }
 
-func parseMetrics(html string) (*Metrics, error) {
+func (p BPMProvider) parse(html string) (BPMKey, error) {
 	bpmRegex := regexp.MustCompile(`tempo of <span[^>]*>(\d+) BPM`)
 	bpmMatch := bpmRegex.FindStringSubmatch(html)
 
@@ -147,7 +150,7 @@ func parseMetrics(html string) (*Metrics, error) {
 	modeMatch := modeRegex.FindStringSubmatch(html)
 
 	if len(bpmMatch) != 2 || len(keyMatch) != 2 || len(modeMatch) != 2 {
-		return nil, fmt.Errorf("no data found")
+		return BPMKey{}, fmt.Errorf("no data found")
 	}
 
 	isMinor := false
@@ -169,8 +172,9 @@ func parseMetrics(html string) (*Metrics, error) {
 		key += "m"
 	}
 
-	return &Metrics{
+	return BPMKey{
 		BPM: bpm,
 		Key: key,
 	}, nil
+
 }

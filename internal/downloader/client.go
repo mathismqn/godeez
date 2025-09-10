@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/mathismqn/godeez/internal/bpm"
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
 	"github.com/mathismqn/godeez/internal/logger"
+	"github.com/mathismqn/godeez/internal/provider"
 	"github.com/mathismqn/godeez/internal/store"
 	"github.com/mathismqn/godeez/internal/tags"
 )
@@ -192,19 +192,20 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return nil, SkipError{Path: path}
 	}
 
-	var metricsChan chan *bpm.Metrics
+	var bpmChan chan provider.BPMKey
 	var errChan chan error
 	if opts.BPM {
-		metricsChan = make(chan *bpm.Metrics, 1)
+		bpmChan = make(chan provider.BPMKey, 1)
 		errChan = make(chan error, 1)
 		go func() {
-			metrics, err := bpm.FetchMetrics(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.Title, song.Duration)
+			p := provider.BPMProvider{}
+			bpmKey, err := p.Fetch(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.Title, song.Duration)
 			if err != nil {
 				errChan <- err
 				return
 			}
 
-			metricsChan <- metrics
+			bpmChan <- bpmKey
 		}()
 	}
 
@@ -230,10 +231,10 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		warnings = append(warnings, fmt.Sprintf("requested quality '%s' not available, using '%s' instead", opts.Quality, strings.ToLower(mediaFormat)))
 	}
 
-	metrics := &bpm.Metrics{}
+	bpmKey := provider.BPMKey{}
 	if opts.BPM {
 		select {
-		case metrics = <-metricsChan:
+		case bpmKey = <-bpmChan:
 		case err := <-errChan:
 			if !errors.Is(err, context.Canceled) {
 				warnings = append(warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
@@ -246,7 +247,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		warnings = append(warnings, fmt.Sprintf("failed to fetch cover image: %v", err))
 	}
 
-	warnings = append(warnings, c.finalizeDownload(resource, song, outputPath, mediaFormat, cover, metrics)...)
+	warnings = append(warnings, c.finalizeDownload(resource, song, outputPath, mediaFormat, cover, bpmKey)...)
 
 	return warnings, nil
 }
@@ -308,10 +309,10 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 	return nil
 }
 
-func (c *Client) finalizeDownload(resource deezer.Resource, song *deezer.Song, outputPath, mediaFormat string, cover []byte, metrics *bpm.Metrics) []string {
+func (c *Client) finalizeDownload(resource deezer.Resource, song *deezer.Song, outputPath, mediaFormat string, cover []byte, bpmKey provider.BPMKey) []string {
 	var warnings []string
 
-	if err := tags.AddTags(resource, song, cover, outputPath, metrics.BPM, metrics.Key); err != nil {
+	if err := tags.AddTags(resource, song, cover, outputPath, bpmKey.BPM, bpmKey.Key); err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 
