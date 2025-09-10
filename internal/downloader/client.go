@@ -193,19 +193,36 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	}
 
 	var bpmChan chan provider.BPMKey
-	var errChan chan error
+	var bpmErrChan chan error
 	if opts.BPM {
 		bpmChan = make(chan provider.BPMKey, 1)
-		errChan = make(chan error, 1)
+		bpmErrChan = make(chan error, 1)
 		go func() {
 			p := provider.BPMProvider{}
 			bpmKey, err := p.Fetch(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.Title, song.Duration)
 			if err != nil {
-				errChan <- err
+				bpmErrChan <- err
 				return
 			}
 
 			bpmChan <- bpmKey
+		}()
+	}
+
+	var genreChan chan string
+	var genreErrChan chan error
+	if opts.Genre {
+		genreChan = make(chan string, 1)
+		genreErrChan = make(chan error, 1)
+		go func() {
+			p := provider.GenreProvider{}
+			genre, err := p.Fetch(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.GetTitle())
+			if err != nil {
+				genreErrChan <- err
+				return
+			}
+
+			genreChan <- genre
 		}()
 	}
 
@@ -227,19 +244,30 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		return nil, fmt.Errorf("failed to stream to file: %w", err)
 	}
 
-	if opts.Quality != strings.ToLower(mediaFormat) {
-		warnings = append(warnings, fmt.Sprintf("requested quality '%s' not available, using '%s' instead", opts.Quality, strings.ToLower(mediaFormat)))
-	}
-
 	bpmKey := provider.BPMKey{}
 	if opts.BPM {
 		select {
 		case bpmKey = <-bpmChan:
-		case err := <-errChan:
+		case err := <-bpmErrChan:
 			if !errors.Is(err, context.Canceled) {
 				warnings = append(warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
 			}
 		}
+	}
+
+	var genre string
+	if opts.Genre {
+		select {
+		case genre = <-genreChan:
+		case err := <-genreErrChan:
+			if !errors.Is(err, context.Canceled) {
+				warnings = append(warnings, fmt.Sprintf("failed to fetch genre: %v", err))
+			}
+		}
+	}
+
+	if opts.Quality != strings.ToLower(mediaFormat) {
+		warnings = append(warnings, fmt.Sprintf("requested quality '%s' not available, using '%s' instead", opts.Quality, strings.ToLower(mediaFormat)))
 	}
 
 	cover, err := c.deezerClient.FetchCoverImage(ctx, song)
@@ -247,7 +275,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		warnings = append(warnings, fmt.Sprintf("failed to fetch cover image: %v", err))
 	}
 
-	warnings = append(warnings, c.finalizeDownload(resource, song, outputPath, mediaFormat, cover, bpmKey)...)
+	warnings = append(warnings, c.finalizeDownload(resource, song, outputPath, mediaFormat, genre, cover, bpmKey)...)
 
 	return warnings, nil
 }
@@ -309,10 +337,10 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 	return nil
 }
 
-func (c *Client) finalizeDownload(resource deezer.Resource, song *deezer.Song, outputPath, mediaFormat string, cover []byte, bpmKey provider.BPMKey) []string {
+func (c *Client) finalizeDownload(resource deezer.Resource, song *deezer.Song, outputPath, mediaFormat, genre string, cover []byte, bpmKey provider.BPMKey) []string {
 	var warnings []string
 
-	if err := tags.AddTags(resource, song, cover, outputPath, bpmKey.BPM, bpmKey.Key); err != nil {
+	if err := tags.AddTags(resource, song, cover, outputPath, bpmKey.BPM, bpmKey.Key, genre); err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 

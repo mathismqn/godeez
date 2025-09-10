@@ -13,7 +13,7 @@ type id3v2Tagger struct {
 	tag *id3v2.Tag
 }
 
-func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
+func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error {
 	defer t.tag.Close()
 
 	duration, err := strconv.Atoi(song.Duration)
@@ -37,6 +37,7 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 	t.addTag("TIT2", song.GetTitle())
 	t.addTag("TCOM", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("TEXT", strings.Join(song.Contributors.Authors, ", "))
+	t.addTag("TCON", genre)
 	t.addTag("TLEN", song.Duration)
 	t.addTXXXTag("GAIN", song.Gain)
 	t.addTXXXTag("ISRC", song.ISRC)

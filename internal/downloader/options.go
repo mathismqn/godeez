@@ -16,6 +16,7 @@ type Options struct {
 	Timeout time.Duration
 	Limit   int
 	BPM     bool
+	Genre   bool
 	Strict  bool
 }
 

@@ -16,7 +16,7 @@ type flacTagger struct {
 	index int
 }
 
-func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key string) error {
+func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error {
 	if album, ok := resource.(*deezer.Album); ok {
 		dateParts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-")
 		if len(dateParts) == 3 {
@@ -37,6 +37,7 @@ func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover 
 	t.addTag("TITLE", song.GetTitle())
 	t.addTag("COMPOSER", strings.Join(song.Contributors.Composers, ", "))
 	t.addTag("LYRICIST", strings.Join(song.Contributors.Authors, ", "))
+	t.addTag("GENRE", genre)
 	t.addTag("REPLAYGAIN_TRACK_GAIN", song.Gain)
 	t.addTag("ISRC", song.ISRC)
 
