@@ -5,18 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-09-11
+
+### Added
+- Add new `track` command to download individual songs.
+- Add `--genre` flag to fetch and embed genre information into file metadata tags.
+
+### Fixed
+- Handle empty media resources gracefully to prevent crashes.
+
 ## [1.2.0] - 2025-08-18
 
 ### Added
-- New `artist` command to download an artist’s top tracks.
-- `--limit` flag for the `artist` command to restrict the number of tracks.
-- `--strict` flag for downloads: fail if the requested quality is unavailable.
+- Add new `artist` command to download an artist’s top tracks.
+- Add `--limit` flag for the `artist` command to restrict the number of tracks.
+- Add `--strict` flag for downloads: fail if the requested quality is unavailable.
 
 ### Changed
-- Default download quality is now **MP3 320kbps**.
+- Set default download quality to **MP3 320kbps**.
 
 ### Removed
-- The `--quality=best` option. Fallback to lower quality is now the **default behavior**; use the new `--strict` flag if you want to prevent fallback.
+- Remove `--quality=best` option. Fallback to lower quality is now the default behavior; use the `--strict` flag to prevent fallback.
 
 ### Fixed
 - Handle error when `SNG_CONTRIBUTORS` metadata is empty.
@@ -24,22 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.1] - 2025-06-16
 
 ### Fixed
-- Restored ability to download tracks **without a Deezer Premium account** (limited to **MP3 128kbps** for free accounts).
+- Restore ability to download tracks without a Deezer Premium account (limited to **MP3 128kbps** for free accounts).
 
 ## [1.1.0] - 2025-05-19
 
 ### Added
-- Support for downloading full albums and playlists with more than 40 tracks (previous limit removed).
-- Option to fetch and embed **BPM** and **musical key** into metadata tags.
-- New local **database system** (`tracks.db`) to track downloaded files and avoid re-downloading, even if files are renamed or moved.
-- Improved CLI **output formatting** for a cleaner and more informative user experience.
+- Support downloading full albums and playlists with more than 40 tracks (previous limit removed).
+- Fetch and embed **BPM** and **musical key** into metadata tags.
+- Add local **database system** (`tracks.db`) to track downloaded files and avoid re-downloading, even if files are renamed or moved.
+- Improve CLI **output formatting** for a cleaner and more informative user experience.
 
 ### Changed
-- The `.godeez` file in the user’s home directory has been replaced by a `.godeez/` directory.  
-  It now stores both `config.toml` and the internal `tracks.db`.  
-  If you're upgrading from an older version, move your existing config into `.godeez/config.toml`.
-- Simplified `config.toml`: `iv` and `license_token` are no longer required.
-- Cleanup logic: corrupted or incomplete files are now automatically deleted on download failure.
+- Replace the `godeez` file in the user’s home directory with a `.godeez/` directory, which now stores both `config.toml` and `tracks.db`.  
+👉 If upgrading, move your existing config into `.godeez/config.toml`.
+- Simplify `config.toml`: remove the need for `iv` and `license_token`.
+- Automatically delete corrupted or incomplete files on download failure.
 
 ## [1.0.0] - 2024-10-15
 

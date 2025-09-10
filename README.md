@@ -20,26 +20,26 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 
 ## Features
 
-* Download playlists, albums, artists' top tracks, and individual tracks from Deezer
-* Select audio quality: MP3 128kbps, MP3 320kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128kbps)
-* Automatically adds metadata tags to downloaded files
-* Fetch and tag songs with BPM and musical key
-* Smart skip system: avoids re-downloading already existing files using hashes and metadata
-* Cross-platform support (works on Windows, macOS, and Linux)
-* Simple and easy-to-use CLI
+- Download playlists, albums, artists’ top tracks, and individual tracks
+- Choose audio quality: **MP3 128kbps**, **MP3 320kbps** (default), or **FLAC** (⚠️ non‑premium accounts are limited to 128kbps)
+- Automatically embed metadata tags (artist, album, title, artwork, etc.)
+- Fetch and tag songs with **BPM**, **musical key**, and **genre**
+- Skip already-downloaded files using hashes and metadata
+- Support Windows, macOS, and Linux
+- Provide a simple, easy-to-use CLI
 
 ## Installation
 
-To install **GoDeez**, simply download the latest binary for your platform from the Releases page.
+To install **GoDeez**, download the latest binary for your platform from the [Releases](https://github.com/mathismqn/godeez/releases) page.
 
 1. Go to the [Releases](https://github.com/mathismqn/godeez/releases) page.
 2. Download the appropriate binary for your operating system (Windows, macOS, or Linux).
-3. Move the binary to a directory included in $PATH for easy access (optional but recommended).
+3. (Optional) Move the binary to a directory included in `$PATH` for easier access.
 
 Example (Linux/macOS):
 ```bash
 # Move the downloaded binary to /usr/local/bin for easy access from anywhere
-mv godeez-1.2.0-linux-amd64 /usr/local/bin/godeez
+mv godeez-1.3.0-linux-amd64 /usr/local/bin/godeez
 ```
 
 ## Configuration
@@ -47,12 +47,12 @@ mv godeez-1.2.0-linux-amd64 /usr/local/bin/godeez
 The first time you run **GoDeez**, a configuration directory named `.godeez` will be automatically created in your home directory (`$HOME` on Linux/macOS, `%USERPROFILE%` on Windows).
 
 Inside this directory:
-- `config.toml`: main configuration file which contains several important variables that you need to fill out manually
-- `tracks.db`: internal database used to track downloaded files and prevent duplicates
+- `config.toml`: main configuration file you need to edit manually
+- `tracks.db`: internal database used to track downloads and avoid duplicates
 
 ### Steps to configure
 
-1. Run the application for the first time: this creates the `.godeez` directory and the `config.toml` file inside it.
+1. Run the application once: this creates the `.godeez` directory and the `config.toml` file.
 2. Edit the `config.toml` file with a text editor to set the required values.
 
 ### Variables to configure
@@ -79,7 +79,6 @@ Here are the key variables you need to set in `config.toml`:
 
 ### Example
 
-Here's an example of a minimal `config.toml` you can customize:
 ```toml
 # ~/.godeez/config.toml
 
@@ -92,7 +91,8 @@ output_dir = ''  # optional
 
 ### CLI Overview
 
-When you run `godeez` without any additional commands, you’ll see a general help menu:
+Running `godeez` without arguments shows the help menu:
+
 ```bash
 GoDeez is a tool to download music from Deezer
 
@@ -110,9 +110,9 @@ Flags:
 
 Use "godeez [command] --help" for more information about a command.
 ```
-This provides an overview of the available commands and flags.
 
-To download music, you need to use the download command. Here’s how the CLI looks when you run `godeez download`:
+### Download commands
+
 ```bash
 Download songs from Deezer
 
@@ -128,6 +128,7 @@ Available Commands:
 Flags:
       --bpm                fetch BPM/key and add to file tags
       --config string      config file (default ~/.godeez/config.toml)
+      --genre              fetch genre and add to file tags
   -h, --help               help for download
   -q, --quality string     download quality [mp3_128, mp3_320, flac] (default "mp3_320")
       --strict             fail the song download if the quality is not available
@@ -137,8 +138,6 @@ Use "godeez download [command] --help" for more information about a command.
 ```
 
 ### Examples
-
-Here are some examples of how to use the different download commands:
 
 ```bash
 # Download an album
@@ -153,8 +152,8 @@ godeez download artist 11223344 --limit 5
 # Download a single track
 godeez download track 98765432
 
-# Download with specific quality and BPM data
-godeez download track 98765432 --quality flac --bpm
+# Download with specific quality, BPM and genre data
+godeez download track 98765432 --quality flac --bpm --genre
 ```
 
 ## Contributing
@@ -163,7 +162,6 @@ Contributions help make **GoDeez** a better tool for everyone, and any help is g
 Whether it’s a bug fix, a new feature, or improving documentation, your input is valuable.
 
 If you have an idea for improvement, feel free to fork the repository and submit a pull request. You can also open an issue if you spot a bug or have a feature suggestion.
-Every bit of support counts, so don’t forget to give the project a star if you enjoy using it. Thank you for helping make this project better!
 
 ## ⭐ Support the Project
 
