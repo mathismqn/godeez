@@ -57,11 +57,7 @@ func (t *Track) GetSongs() []*Song {
 	return []*Song{t.Results.Data}
 }
 
-func (t *Track) SetSongs(songs []*Song) {
-	if len(songs) > 0 {
-		t.Results.Data = songs[0]
-	}
-}
+func (t *Track) SetSongs(songs []*Song) {}
 
 func (t *Track) GetOutputDir(outputDir string) string {
 	if t.Results.Data == nil {

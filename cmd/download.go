@@ -78,12 +78,11 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 		},
 	}
 
-	if resourceType == "artist" {
-		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
+	switch resourceType {
+	case "artist":
 		cmd.Short = "Download top songs from an artist"
-	}
-
-	if resourceType == "track" {
+		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
+	case "track":
 		cmd.Short = "Download a single track"
 	}
 
