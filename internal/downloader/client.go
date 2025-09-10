@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
@@ -45,6 +44,19 @@ func New(appConfig *config.Config, resourceType string) *Client {
 }
 
 func (c *Client) Run(ctx context.Context, opts Options, id string) error {
+	if err := c.initDeezerClient(ctx, opts); err != nil {
+		return err
+	}
+
+	resource, outputDir, err := c.prepareResource(ctx, id, opts)
+	if err != nil {
+		return err
+	}
+
+	return c.downloadAllSongs(ctx, resource, id, opts, outputDir)
+}
+
+func (c *Client) initDeezerClient(ctx context.Context, opts Options) error {
 	var err error
 	c.deezerClient, err = deezer.NewClient(ctx, c.appConfig)
 	if err != nil {
@@ -55,180 +67,112 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		return fmt.Errorf("premium account required for '%s' quality", opts.Quality)
 	}
 
-	var resource deezer.Resource
-	switch c.resourceType {
-	case "album":
-		resource = &deezer.Album{}
-	case "playlist":
-		resource = &deezer.Playlist{}
-	case "artist":
-		resource = &deezer.Artist{}
-	case "track":
-		resource = &deezer.Track{}
-	default:
-		return fmt.Errorf("unsupported resource type: %s", c.resourceType)
+	return nil
+}
+
+func (c *Client) prepareResource(ctx context.Context, id string, opts Options) (deezer.Resource, string, error) {
+	resource, err := c.createResource()
+	if err != nil {
+		return nil, "", err
 	}
 
 	if err := c.deezerClient.FetchResource(ctx, resource, id); err != nil {
-		return fmt.Errorf("failed to fetch resource: %w", err)
+		return nil, "", fmt.Errorf("failed to fetch resource: %w", err)
 	}
 
 	songs := resource.GetSongs()
 	if len(songs) == 0 {
 		if c.resourceType == "track" {
-			return fmt.Errorf("track with ID %s not found", id)
+			return nil, "", fmt.Errorf("track with ID %s not found", id)
 		}
-		return fmt.Errorf("%s has no songs", c.resourceType)
+		return nil, "", fmt.Errorf("%s has no songs", c.resourceType)
 	}
+
 	if c.resourceType == "artist" && len(songs) > opts.Limit {
 		songs = songs[:opts.Limit]
 		resource.SetSongs(songs)
 	}
 
-	rootOutputDir := c.appConfig.OutputDir
-	resourceOutputDir := resource.GetOutputDir(rootOutputDir)
+	resourceOutputDir := resource.GetOutputDir(c.appConfig.OutputDir)
 	if err := fileutil.EnsureDir(resourceOutputDir); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
+		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
+	return resource, resourceOutputDir, nil
+}
+
+func (c *Client) createResource() (deezer.Resource, error) {
+	switch c.resourceType {
+	case "album":
+		return &deezer.Album{}, nil
+	case "playlist":
+		return &deezer.Playlist{}, nil
+	case "artist":
+		return &deezer.Artist{}, nil
+	case "track":
+		return &deezer.Track{}, nil
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", c.resourceType)
+	}
+}
+
+func (c *Client) downloadAllSongs(ctx context.Context, resource deezer.Resource, resourceID string, opts Options, outputDir string) error {
+	songs := resource.GetSongs()
 	startTime := time.Now()
+
 	if c.resourceType != "track" {
 		fmt.Printf("%s\n\nStarting download...\n\n", resource)
 	}
 
-	downloaded := 0
-	skipped := 0
-	failed := 0
+	progress := newProgressTracker(c.Logger, len(songs), c.resourceType)
 
 	for i, song := range songs {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
 
-		songTitle := song.GetTitle()
-		trackProgress := fmt.Sprintf("[%d/%d]", i+1, len(songs))
-
-		sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		sp.Writer = os.Stdout
-		sp.Prefix = trackProgress + " "
-		sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, songTitle)
-		sp.Start()
-
-		warnings, err := c.downloadSong(ctx, resource, song, opts, resourceOutputDir)
+		sp := progress.startDownload(i, song)
+		result := c.downloadSong(ctx, resource, song, opts, outputDir)
 		sp.Stop()
 
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return err
+		if result.err != nil {
+			if errors.Is(result.err, context.Canceled) {
+				return result.err
 			}
-
-			if path, ok := IsSkipError(err); ok {
-				skipped++
-				fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n", trackProgress, song.Artist, songTitle, path)
-				continue
-			}
-
-			failed++
-			c.Logger.Errorf("Failed to download %s - %s: %v\n", song.Artist, songTitle, err)
-			fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n", trackProgress, song.Artist, songTitle, err)
-
-			continue
 		}
 
-		symbol := "✔"
-		if len(warnings) > 0 {
-			symbol = "⚠"
-		}
-
-		downloaded++
-		c.Logger.Infof("Downloaded %s - %s\n", song.Artist, songTitle)
-		fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, songTitle)
-
-		for _, w := range warnings {
-			c.Logger.Warnf("Warning: %s\n", w)
-			fmt.Printf("    Warning: %s\n", w)
-		}
+		progress.handleResult(i, song, result)
 	}
 
-	if downloaded > 0 || failed > 0 {
-		c.Logger.Infof("Playlist %s (%s): %d downloaded, %d skipped, %d failed\n", resource.GetTitle(), id, downloaded, skipped, failed)
-	}
-
-	if c.resourceType != "track" {
-		fmt.Printf(`
-================== [ Summary ] ==================
-Downloaded:     %d
-Skipped:        %d
-Failed:         %d
-Elapsed time:   %s
-Files saved to: %s
-=================================================
-`,
-			downloaded,
-			skipped,
-			failed,
-			time.Since(startTime).Round(time.Second),
-			resourceOutputDir,
-		)
-	}
+	progress.printSummary(resource.GetTitle(), resourceID, outputDir, time.Since(startTime))
 
 	return nil
 }
 
-func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, song *deezer.Song, opts Options, outputDir string) ([]string, error) {
+func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, song *deezer.Song, opts Options, outputDir string) downloadResult {
 	var warnings []string
 
 	media, err := c.deezerClient.FetchMedia(ctx, song, opts.Quality)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch media: %w", err)
+		return handleError(fmt.Errorf("failed to fetch media: %w", err))
 	}
 
 	mediaFormat := media.GetFormat()
 	if opts.Strict && strings.ToLower(mediaFormat) != opts.Quality {
-		return nil, fmt.Errorf("requested quality '%s' not available", opts.Quality)
+		return handleError(fmt.Errorf("requested quality '%s' not available", opts.Quality))
 	}
 
 	if path, skip := c.shouldSkipDownload(ctx, song.ID, mediaFormat); skip {
-		return nil, SkipError{Path: path}
+		return handleError(SkipError{Path: path})
 	}
 
-	var bpmChan chan provider.BPMKey
-	var bpmErrChan chan error
-	if opts.BPM {
-		bpmChan = make(chan provider.BPMKey, 1)
-		bpmErrChan = make(chan error, 1)
-		go func() {
-			p := provider.BPMProvider{}
-			bpmKey, err := p.Fetch(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.Title, song.Duration)
-			if err != nil {
-				bpmErrChan <- err
-				return
-			}
-
-			bpmChan <- bpmKey
-		}()
-	}
-
-	var genreChan chan string
-	var genreErrChan chan error
-	if opts.Genre {
-		genreChan = make(chan string, 1)
-		genreErrChan = make(chan error, 1)
-		go func() {
-			p := provider.GenreProvider{}
-			genre, err := p.Fetch(ctx, c.deezerClient.Session.HttpClient, song.Artist, song.GetTitle())
-			if err != nil {
-				genreErrChan <- err
-				return
-			}
-
-			genreChan <- genre
-		}()
-	}
+	metadataFetcher := newMetadataFetcher(c.deezerClient.Session.HttpClient)
+	metadataResult := metadataFetcher.fetch(ctx, song, opts)
+	warnings = append(warnings, metadataResult.warnings...)
 
 	stream, err := c.deezerClient.GetMediaStream(ctx, media, song.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get media stream: %w", err)
+		return handleError(fmt.Errorf("failed to get media stream: %w", err))
 	}
 
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
@@ -240,30 +184,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	key := crypto.GetKey(c.appConfig.SecretKey, song.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
-
-		return nil, fmt.Errorf("failed to stream to file: %w", err)
-	}
-
-	bpmKey := provider.BPMKey{}
-	if opts.BPM {
-		select {
-		case bpmKey = <-bpmChan:
-		case err := <-bpmErrChan:
-			if !errors.Is(err, context.Canceled) {
-				warnings = append(warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
-			}
-		}
-	}
-
-	var genre string
-	if opts.Genre {
-		select {
-		case genre = <-genreChan:
-		case err := <-genreErrChan:
-			if !errors.Is(err, context.Canceled) {
-				warnings = append(warnings, fmt.Sprintf("failed to fetch genre: %v", err))
-			}
-		}
+		return handleError(fmt.Errorf("failed to stream to file: %w", err))
 	}
 
 	if opts.Quality != strings.ToLower(mediaFormat) {
@@ -275,9 +196,13 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 		warnings = append(warnings, fmt.Sprintf("failed to fetch cover image: %v", err))
 	}
 
-	warnings = append(warnings, c.finalizeDownload(resource, song, outputPath, mediaFormat, genre, cover, bpmKey)...)
+	finalizeWarnings := c.finalizeDownload(resource, song, outputPath, mediaFormat, metadataResult.genre, cover, metadataResult.bpmKey)
+	warnings = append(warnings, finalizeWarnings...)
 
-	return warnings, nil
+	return downloadResult{
+		success:  true,
+		warnings: warnings,
+	}
 }
 
 func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputPath string, key []byte) error {
