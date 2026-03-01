@@ -8,13 +8,17 @@ import (
 	"golang.org/x/crypto/blowfish"
 )
 
-var iv = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
+var (
+	iv        = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
+	secretKey = []byte("g4el58wc0zvf9na1")
+)
 
-func GetKey(secretKey, songID string) []byte {
+func GetKey(songID string) []byte {
 	hash := md5.Sum([]byte(songID))
 	hashHex := hex.EncodeToString(hash[:])
 
-	key := []byte(secretKey)
+	key := make([]byte, len(secretKey))
+	copy(key, secretKey)
 	for i := 0; i < len(hash); i++ {
 		key[i] = key[i] ^ hashHex[i] ^ hashHex[i+16]
 	}

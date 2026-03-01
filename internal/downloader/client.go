@@ -175,7 +175,7 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	fileName := song.GetFileName(c.resourceType, mediaFormat)
 	outputPath := path.Join(outputDir, fileName)
 
-	key := crypto.GetKey(c.appConfig.SecretKey, song.ID)
+	key := crypto.GetKey(song.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
 		return downloadResult{err: fmt.Errorf("failed to stream to file: %w", err)}
