@@ -16,10 +16,7 @@ type contextKey string
 
 const appConfigKey contextKey = "appConfig"
 
-var (
-	opts    downloader.Options
-	cfgPath string
-)
+var opts downloader.Options
 
 var downloadCmd = &cobra.Command{
 	Use:   "download",
@@ -29,7 +26,6 @@ var downloadCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(downloadCmd)
 
-	downloadCmd.PersistentFlags().StringVar(&cfgPath, "config", "", "config file (default ~/.godeez/config.toml)")
 	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "mp3_320", "download quality [mp3_128, mp3_320, flac]")
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
@@ -50,7 +46,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 		Short: downloadShort(resourceType),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			appConfig, err := config.New(cfgPath)
+			appConfig, err := config.New()
 			if err != nil {
 				return err
 			}

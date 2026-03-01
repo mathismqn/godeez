@@ -7,69 +7,51 @@ import (
 
 	"github.com/mathismqn/godeez/internal/fileutil"
 	"github.com/mathismqn/godeez/internal/store"
-	"github.com/spf13/viper"
 )
 
 type Config struct {
-	ArlCookie string `mapstructure:"arl_cookie"`
-	OutputDir string `mapstructure:"output_dir"`
+	ArlCookie string
+	OutputDir string
 	HomeDir   string
 }
 
-func New(cfgPath string) (*Config, error) {
+func New() (*Config, error) {
+	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		return nil, fmt.Errorf("DEEZER_ARL is not set. Export it in your shell: export DEEZER_ARL='your_cookie'")
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	cfgDir := filepath.Join(homeDir, ".godeez")
-	if err := fileutil.EnsureDir(cfgDir); err != nil {
-		return nil, fmt.Errorf("failed to create config directory: %w", err)
+	outputDir := filepath.Join(homeDir, "Music", "GoDeez")
+	if err := fileutil.EnsureDir(outputDir); err != nil {
+		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	if cfgPath == "" {
-		cfgPath = filepath.Join(cfgDir, "config.toml")
-		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
-			fmt.Printf("Config file not found, creating one at %s\n", cfgPath)
-
-			content := []byte("arl_cookie = ''\noutput_dir = ''\n")
-			if err := os.WriteFile(cfgPath, content, 0644); err != nil {
-				return nil, fmt.Errorf("failed to create config file: %w", err)
-			}
-
-			os.Exit(0)
+	// Migrate tracks.db from ~/.godeez/ to output dir
+	oldDB := filepath.Join(homeDir, ".godeez", "tracks.db")
+	newDB := filepath.Join(outputDir, ".tracks.db")
+	if _, err := os.Stat(oldDB); err == nil {
+		if _, err := os.Stat(newDB); os.IsNotExist(err) {
+			os.Rename(oldDB, newDB)
 		}
 	}
 
-	viper.SetConfigFile(cfgPath)
-	viper.SetConfigType("toml")
-	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
+	// Clean up old config directory
+	oldDir := filepath.Join(homeDir, ".godeez")
+	os.Remove(filepath.Join(oldDir, "config.toml"))
+	os.Remove(oldDir) // fails silently if not empty
 
-	cfg := &Config{HomeDir: homeDir}
-	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
-	}
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid config: %w", err)
-	}
-
-	if err := store.OpenDB(cfgDir); err != nil {
+	if err := store.OpenDB(outputDir); err != nil {
 		return nil, err
 	}
 
-	return cfg, nil
-}
-
-func (c *Config) Validate() error {
-	if c.ArlCookie == "" {
-		return fmt.Errorf("arl_cookie is not set")
-	}
-	if c.OutputDir == "" {
-		c.OutputDir = filepath.Join(c.HomeDir, "Music", "GoDeez")
-	}
-
-	return nil
+	return &Config{
+		ArlCookie: arl,
+		OutputDir: outputDir,
+		HomeDir:   homeDir,
+	}, nil
 }
