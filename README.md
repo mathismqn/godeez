@@ -37,55 +37,37 @@ To install **GoDeez**, download the latest binary for your platform from the [Re
 3. (Optional) Move the binary to a directory included in `$PATH` for easier access.
 
 Example (Linux/macOS):
+
 ```bash
 # Move the downloaded binary to /usr/local/bin for easy access from anywhere
-mv godeez-1.3.0-linux-amd64 /usr/local/bin/godeez
+mv godeez-1.4.0-linux-amd64 /usr/local/bin/godeez
 ```
 
 ## Configuration
 
-The first time you run **GoDeez**, a configuration directory named `.godeez` will be automatically created in your home directory (`$HOME` on Linux/macOS, `%USERPROFILE%` on Windows).
+**GoDeez** requires a Deezer ARL cookie for authentication. Set it as an environment variable:
 
-Inside this directory:
-- `config.toml`: main configuration file you need to edit manually
-- `tracks.db`: internal database used to track downloads and avoid duplicates
-
-### Steps to configure
-
-1. Run the application once: this creates the `.godeez` directory and the `config.toml` file.
-2. Edit the `config.toml` file with a text editor to set the required values.
-
-### Variables to configure
-
-Here are the key variables you need to set in `config.toml`:
-
-1. `arl_cookie`
-* **What is it?**: The `arl_cookie` is a session cookie used for authentication with Deezer. Without this cookie, the downloader cannot access your account to retrieve playlists, albums, or songs.
-* **How to retrieve it**:
-	1.	Open your browser and log in to your Deezer account.
-	2.	Open the Developer Tools (right-click on the page and select “Inspect” or press F12).
-	3.	Navigate to the Application tab (in Chrome/Edge) or Storage tab (in Firefox).
-	4.	In the left panel, look for Cookies and select `https://www.deezer.com`.
-	5.	Find the arl cookie and copy its value.
-
-2. `secret_key`
-* **What is it?**: The `secret_key` is a cryptographic value used to decrypt Deezer’s media files.
-* **How to retrieve it?**: While we cannot provide the specific secret_key in this documentation, it can be found online through various sources or developer communities that focus on Deezer.
-
-3. `output_dir` (optional)
-* **What is it?**: The `output_dir` is the path where downloaded music files will be saved.
-* **Default**: If left empty, it defaults to `~/Music/GoDeez`.
-* **Note**: Once set, it's recommended not to change it, as this may interfere with the skip system that relies on consistent file paths and hash indexing to detect already downloaded songs.
-
-### Example
-
-```toml
-# ~/.godeez/config.toml
-
-arl_cookie = 'your_arl_cookie_here'
-secret_key = 'your_secret_key_here'
-output_dir = ''  # optional
+```bash
+export DEEZER_ARL=”your_arl_cookie_here”
 ```
+
+To make it persistent, add the line above to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.).
+
+### How to retrieve your ARL cookie
+
+1. Open your browser and log in to your [Deezer](https://www.deezer.com) account.
+2. Open the Developer Tools (right-click on the page and select “Inspect” or press F12).
+3. Navigate to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
+4. In the left panel, look for **Cookies** and select `https://www.deezer.com`.
+5. Find the `arl` cookie and copy its value.
+
+> **Note:** The ARL cookie may expire after some time. If you get authentication errors, retrieve a fresh cookie using the steps above.
+
+### Output directory
+
+Downloaded files are saved to `~/Music/GoDeez`. The download database (`.tracks.db`) is stored alongside your music in the output directory.
+
+> **Upgrading from v1.3.0?** The `~/.godeez` directory and `config.toml` are no longer used. Set the `DEEZER_ARL` environment variable instead. Your existing database will be migrated automatically on first run.
 
 ## Usage
 
@@ -105,8 +87,7 @@ Available Commands:
   help        Help about any command
 
 Flags:
-      --config string   config file (default ~/.godeez/config.toml)
-  -h, --help            help for godeez
+  -h, --help   help for godeez
 
 Use "godeez [command] --help" for more information about a command.
 ```
@@ -168,7 +149,8 @@ If you have an idea for improvement, feel free to fork the repository and submit
 If **GoDeez** helps you enjoy your music collection, please consider giving it a star!
 
 **Why star us?**
-- Helps more music lovers discover the project  
+
+- Helps more music lovers discover the project
 - Shows appreciation for the work and motivates development
 - Takes just one click but means the world to us!
 
