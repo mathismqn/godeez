@@ -3,6 +3,7 @@ package deezer
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/flytam/filenamify"
 )
@@ -54,7 +55,11 @@ func (s *Song) GetFileName(resourceType, mediaFormat string) string {
 
 	prefix := ""
 	if resourceType == "album" {
-		prefix = s.TrackNumber + ". "
+		if n, err := strconv.Atoi(s.TrackNumber); err == nil {
+			prefix = fmt.Sprintf("%02d. ", n)
+		} else {
+			prefix = s.TrackNumber + ". "
+		}
 	}
 
 	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, s.Artist, s.GetTitle(), ext)

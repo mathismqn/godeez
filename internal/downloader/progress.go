@@ -22,6 +22,7 @@ type downloadStats struct {
 	downloaded int
 	skipped    int
 	failed     int
+	warnings   int
 }
 
 type progressTracker struct {
@@ -71,6 +72,9 @@ func (pt *progressTracker) handleResult(index int, song *deezer.Song, result dow
 	}
 
 	pt.stats.downloaded++
+	if len(result.warnings) > 0 {
+		pt.stats.warnings++
+	}
 	pt.logger.Infof("Downloaded %s - %s\n", song.Artist, songTitle)
 
 	symbol := "✔"
@@ -92,11 +96,15 @@ func (pt *progressTracker) printSummary(resourceTitle, resourceID, outputDir str
 	}
 
 	if pt.resourceType != "track" {
+		warningsLine := ""
+		if pt.stats.warnings > 0 {
+			warningsLine = fmt.Sprintf("\nWarnings:       %d", pt.stats.warnings)
+		}
 		fmt.Printf(`
 ================== [ Summary ] ==================
 Downloaded:     %d
 Skipped:        %d
-Failed:         %d
+Failed:         %d%s
 Elapsed time:   %s
 Files saved to: %s
 =================================================
@@ -104,6 +112,7 @@ Files saved to: %s
 			pt.stats.downloaded,
 			pt.stats.skipped,
 			pt.stats.failed,
+			warningsLine,
 			elapsed.Round(time.Second),
 			outputDir,
 		)
