@@ -67,9 +67,7 @@ func (a *Album) SetSongs(s []*Song) {
 func (a *Album) GetOutputDir(outputDir string) string {
 	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})
-	outputDir = path.Join(outputDir, base)
-
-	return outputDir
+	return path.Join(outputDir, base)
 }
 
 func (a *Album) Unmarshal(data []byte) error {

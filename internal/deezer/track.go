@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
 	"time"
-
-	"github.com/flytam/filenamify"
 )
 
 type Track struct {
@@ -20,11 +19,9 @@ func (t *Track) String() string {
 		return "Track: No data available"
 	}
 
-	duration := "Unknown"
-	if t.Results.Data.Duration != "" {
-		if d, err := time.ParseDuration(t.Results.Data.Duration + "s"); err == nil {
-			duration = d.String()
-		}
+	duration, err := strconv.Atoi(t.Results.Data.Duration)
+	if err != nil {
+		duration = 0
 	}
 
 	return fmt.Sprintf(
@@ -35,7 +32,7 @@ Duration: %s
 ==================================================`,
 		t.Results.Data.GetTitle(),
 		t.Results.Data.Artist,
-		duration,
+		time.Duration(duration)*time.Second,
 	)
 }
 
@@ -52,7 +49,7 @@ func (t *Track) GetTitle() string {
 
 func (t *Track) GetSongs() []*Song {
 	if t.Results.Data == nil {
-		return []*Song{}
+		return nil
 	}
 	return []*Song{t.Results.Data}
 }
@@ -60,16 +57,7 @@ func (t *Track) GetSongs() []*Song {
 func (t *Track) SetSongs(songs []*Song) {}
 
 func (t *Track) GetOutputDir(outputDir string) string {
-	if t.Results.Data == nil {
-		return outputDir
-	}
-
-	// For single tracks, create a simple "Singles" folder
-	base := "Singles"
-	base, _ = filenamify.Filenamify(base, filenamify.Options{})
-	outputDir = path.Join(outputDir, base)
-
-	return outputDir
+	return path.Join(outputDir, "Singles")
 }
 
 func (t *Track) Unmarshal(data []byte) error {

@@ -18,9 +18,8 @@ type flacTagger struct {
 
 func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error {
 	if album, ok := resource.(*deezer.Album); ok {
-		dateParts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-")
-		if len(dateParts) == 3 {
-			album.Results.Data.PhysicalReleaseDate = dateParts[0]
+		if parts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-"); len(parts) == 3 {
+			album.Results.Data.PhysicalReleaseDate = parts[0]
 		}
 
 		t.addTag("TRACKNUMBER", song.TrackNumber)
@@ -40,26 +39,29 @@ func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover 
 	t.addTag("GENRE", genre)
 	t.addTag("REPLAYGAIN_TRACK_GAIN", song.Gain)
 	t.addTag("ISRC", song.ISRC)
-
 	t.addTag("BPM", tempo)
 	t.addTag("KEY", key)
 	t.addTag("INITIALKEY", key)
 
-	cmtsmeta := t.cmts.Marshal()
+	cmtsMeta := t.cmts.Marshal()
 	if t.index > 0 {
-		t.file.Meta[t.index] = &cmtsmeta
+		t.file.Meta[t.index] = &cmtsMeta
 	} else {
-		t.file.Meta = append(t.file.Meta, &cmtsmeta)
+		t.file.Meta = append(t.file.Meta, &cmtsMeta)
 	}
 
 	picture, err := flacpicture.NewFromImageData(flacpicture.PictureTypeFrontCover, "Front cover", cover, "image/jpeg")
 	if err != nil {
 		return err
 	}
-	picturemeta := picture.Marshal()
-	t.file.Meta = append(t.file.Meta, &picturemeta)
+	pictureMeta := picture.Marshal()
+	t.file.Meta = append(t.file.Meta, &pictureMeta)
 
-	return t.saveTags(path)
+	tmpPath := path + ".tmp"
+	if err := t.file.Save(tmpPath); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, path)
 }
 
 func (t *flacTagger) addTag(name, value string) {
@@ -68,26 +70,14 @@ func (t *flacTagger) addTag(name, value string) {
 	}
 }
 
-func (t *flacTagger) saveTags(path string) error {
-	tempPath := path + ".tmp"
-	t.file.Save(tempPath)
-
-	return os.Rename(tempPath, path)
-}
-
-func extractFLACComment(file *flac.File) (*flacvorbis.MetaDataBlockVorbisComment, int, error) {
-	var cmt *flacvorbis.MetaDataBlockVorbisComment
-	var cmtIdx int
-	var err error
+func extractFLACComment(file *flac.File) (*flacvorbis.MetaDataBlockVorbisComment, int) {
 	for idx, meta := range file.Meta {
 		if meta.Type == flac.VorbisComment {
-			cmt, err = flacvorbis.ParseFromMetaDataBlock(*meta)
-			cmtIdx = idx
-			if err != nil {
-				return nil, 0, err
+			cmt, err := flacvorbis.ParseFromMetaDataBlock(*meta)
+			if err == nil {
+				return cmt, idx
 			}
 		}
 	}
-
-	return cmt, cmtIdx, nil
+	return nil, 0
 }

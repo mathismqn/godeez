@@ -17,15 +17,11 @@ var watchRunCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
-		cmd.SetContext(context.WithValue(cmd.Context(), "appConfig", appConfig))
+		cmd.SetContext(context.WithValue(cmd.Context(), appConfigKey, appConfig))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx := cmd.Context()
-		appConfigVal := ctx.Value("appConfig")
-		appConfig, _ := appConfigVal.(*config.Config)
-
-		w := watcher.New(appConfig)
-		w.Run(ctx, opts)
+		appConfig, _ := cmd.Context().Value(appConfigKey).(*config.Config)
+		watcher.New(appConfig).Run(cmd.Context(), opts)
 	},
 }
 

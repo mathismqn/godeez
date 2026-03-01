@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// EnsureAutostart installs the watcher as a system autostart service.
+// Currently disabled: installAutostart is not called due to DB concurrency issues.
 func EnsureAutostart(homeDir string) error {
 	if isAutostartInstalled(homeDir) || isTemporaryExecutable() {
 		return nil
@@ -18,15 +20,13 @@ func EnsureAutostart(homeDir string) error {
 }
 
 func isAutostartInstalled(homeDir string) bool {
-	switch runtime.GOOS {
-	case "darwin":
-		path := filepath.Join(homeDir, "Library", "LaunchAgents", "com.godeez.watch.plist")
-		_, err := os.Stat(path)
-
-		return err == nil
-	default:
+	if runtime.GOOS != "darwin" {
 		return false
 	}
+
+	path := filepath.Join(homeDir, "Library", "LaunchAgents", "com.godeez.watch.plist")
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func isTemporaryExecutable() bool {
@@ -34,6 +34,5 @@ func isTemporaryExecutable() bool {
 	if err != nil {
 		return true
 	}
-
 	return strings.Contains(exe, "go-build")
 }

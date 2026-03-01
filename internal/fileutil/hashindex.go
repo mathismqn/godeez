@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -16,12 +17,11 @@ type HashIndex struct {
 func NewHashIndex(ctx context.Context, root string) (*HashIndex, error) {
 	index := &HashIndex{files: make(map[string]string)}
 
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-
-		if err != nil || info.IsDir() {
+		if err != nil || d.IsDir() {
 			return nil
 		}
 
@@ -36,12 +36,9 @@ func NewHashIndex(ctx context.Context, root string) (*HashIndex, error) {
 			return nil
 		}
 
-		sum := hex.EncodeToString(h.Sum(nil))
-		index.files[sum] = path
-
+		index.files[hex.EncodeToString(h.Sum(nil))] = path
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +48,5 @@ func NewHashIndex(ctx context.Context, root string) (*HashIndex, error) {
 
 func (h *HashIndex) Find(hash string) (string, bool) {
 	path, ok := h.files[hash]
-
 	return path, ok
 }

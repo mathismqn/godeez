@@ -40,26 +40,24 @@ type Song struct {
 }
 
 func (s *Song) GetTitle() string {
-	songTitle := s.Title
 	if s.Version != "" {
-		songTitle = fmt.Sprintf("%s %s", s.Title, s.Version)
+		return s.Title + " " + s.Version
 	}
-
-	return songTitle
+	return s.Title
 }
 
-func (s *Song) GetFileName(resourceType, mediaFormat string, song *Song) string {
+func (s *Song) GetFileName(resourceType, mediaFormat string) string {
 	ext := "mp3"
 	if mediaFormat == "FLAC" {
 		ext = "flac"
 	}
-	trackNumber := ""
+
+	prefix := ""
 	if resourceType == "album" {
-		trackNumber = song.TrackNumber + ". "
+		prefix = s.TrackNumber + ". "
 	}
 
-	fileName := fmt.Sprintf("%s%s - %s.%s", trackNumber, s.Artist, s.GetTitle(), ext)
+	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, s.Artist, s.GetTitle(), ext)
 	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 255})
-
 	return fileName
 }

@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/mathismqn/godeez/internal/fileutil"
@@ -30,7 +29,7 @@ func New(cfgPath string) (*Config, error) {
 	}
 
 	if cfgPath == "" {
-		cfgPath = path.Join(cfgDir, "config.toml")
+		cfgPath = filepath.Join(cfgDir, "config.toml")
 		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 			fmt.Printf("Config file not found, creating one at %s\n", cfgPath)
 

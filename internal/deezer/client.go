@@ -38,18 +38,21 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 		"tags":   true,
 		"header": true,
 	}
-	switch r := resource.(type) {
+
+	var idKey string
+	switch resource.(type) {
 	case *Playlist:
-		payload["playlist_id"] = id
+		idKey = "playlist_id"
 	case *Album:
-		payload["alb_id"] = id
+		idKey = "alb_id"
 	case *Artist:
-		payload["art_id"] = id
+		idKey = "art_id"
 	case *Track:
-		payload["sng_id"] = id
+		idKey = "sng_id"
 	default:
-		return fmt.Errorf("unsupported resource type: %T", r)
+		return fmt.Errorf("unsupported resource type: %T", resource)
 	}
+	payload[idKey] = id
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -77,18 +80,22 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 		return err
 	}
 
-	switch {
-	case strings.Contains(string(body), `"DATA_ERROR":"playlist::getData"`):
-		return fmt.Errorf("invalid playlist ID")
-	case strings.Contains(string(body), `"DATA_ERROR":"album::getData"`):
-		return fmt.Errorf("invalid album ID")
-	case strings.Contains(string(body), `"DATA_ERROR":"artist::getData"`):
-		return fmt.Errorf("invalid artist ID")
-	case strings.Contains(string(body), `"DATA_ERROR":"song::getData"`):
-		return fmt.Errorf("invalid track ID")
+	bodyStr := string(body)
+	for _, check := range []struct {
+		marker string
+		errMsg string
+	}{
+		{`"DATA_ERROR":"playlist::getData"`, "invalid playlist ID"},
+		{`"DATA_ERROR":"album::getData"`, "invalid album ID"},
+		{`"DATA_ERROR":"artist::getData"`, "invalid artist ID"},
+		{`"DATA_ERROR":"song::getData"`, "invalid track ID"},
+	} {
+		if strings.Contains(bodyStr, check.marker) {
+			return fmt.Errorf("%s", check.errMsg)
+		}
 	}
 
-	if strings.Contains(string(body), `"results":{}`) {
+	if strings.Contains(bodyStr, `"results":{}`) {
 		return fmt.Errorf("unexpected response")
 	}
 
@@ -96,18 +103,13 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 }
 
 func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*Media, error) {
-	var formats string
-
-	switch quality {
-	case "mp3_128":
-		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
-	case "mp3_320":
-		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
-	case "flac":
-		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
+	qualityFormats := map[string]string{
+		"mp3_128": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
+		"mp3_320": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
+		"flac":    `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
 	}
 
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.LicenseToken, formats, song.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.LicenseToken, qualityFormats[quality], song.TrackToken)
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
@@ -129,8 +131,7 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 	}
 
 	var media Media
-	err = json.Unmarshal(body, &media)
-	if err != nil {
+	if err := json.Unmarshal(body, &media); err != nil {
 		return nil, err
 	}
 
@@ -138,7 +139,6 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 		if media.Errors[0].Code == 1000 {
 			return nil, fmt.Errorf("invalid license token")
 		}
-
 		return nil, fmt.Errorf("%s", media.Errors[0].Message)
 	}
 
@@ -146,7 +146,6 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 		if media.Data[0].Errors[0].Code == 2002 {
 			return nil, fmt.Errorf("invalid track token")
 		}
-
 		return nil, fmt.Errorf("%s", media.Data[0].Errors[0].Message)
 	}
 
@@ -177,9 +176,8 @@ func (c *Client) FetchCoverImage(ctx context.Context, song *Song) ([]byte, error
 	return io.ReadAll(resp.Body)
 }
 
-func (c *Client) GetMediaStream(ctx context.Context, media *Media, songID string) (io.ReadCloser, error) {
-	url := media.GetURL()
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+func (c *Client) GetMediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", media.GetURL(), nil)
 	if err != nil {
 		return nil, err
 	}

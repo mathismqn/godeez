@@ -1,30 +1,21 @@
 package deezer
 
 type Media struct {
-	Errors []MediaError `json:"errors"`
+	Errors []mediaError `json:"errors"`
 	Data   []struct {
 		Media []struct {
-			Type    string   `json:"media_type"`
-			Cipher  Cipher   `json:"cipher"`
-			Format  string   `json:"format"`
-			Sources []Source `json:"sources"`
+			Format  string `json:"format"`
+			Sources []struct {
+				URL string `json:"url"`
+			} `json:"sources"`
 		}
-		Errors []MediaError `json:"errors"`
+		Errors []mediaError `json:"errors"`
 	} `json:"data"`
 }
 
-type MediaError struct {
+type mediaError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
-}
-
-type Cipher struct {
-	Type string `json:"type"`
-}
-
-type Source struct {
-	URL      string `json:"url"`
-	Provider string `json:"provider"`
 }
 
 func (m *Media) GetURL() string {

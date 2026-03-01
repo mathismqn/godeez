@@ -13,7 +13,6 @@ type Playlist struct {
 	Results struct {
 		Data struct {
 			Title    string `json:"TITLE"`
-			Status   int    `json:"STATUS"`
 			Creator  string `json:"PARENT_USERNAME"`
 			Duration int    `json:"DURATION"`
 		} `json:"DATA"`
@@ -55,10 +54,8 @@ func (p *Playlist) SetSongs(s []*Song) {
 }
 
 func (p *Playlist) GetOutputDir(outputDir string) string {
-	p.Results.Data.Title, _ = filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
-	outputDir = path.Join(outputDir, p.Results.Data.Title)
-
-	return outputDir
+	base, _ := filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
+	return path.Join(outputDir, base)
 }
 
 func (p *Playlist) Unmarshal(data []byte) error {

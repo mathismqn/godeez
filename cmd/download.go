@@ -12,6 +12,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type contextKey string
+
+const appConfigKey contextKey = "appConfig"
+
 var (
 	opts    downloader.Options
 	cfgPath string
@@ -41,51 +45,47 @@ func init() {
 }
 
 func newDownloadCmd(resourceType string) *cobra.Command {
-	article := "a"
-	if resourceType == "album" {
-		article = "an"
-	}
-
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <%s_id>", resourceType, resourceType),
-		Short: fmt.Sprintf("Download songs from %s %s", article, resourceType),
+		Short: downloadShort(resourceType),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			appConfig, err := config.New(cfgPath)
 			if err != nil {
 				return err
 			}
-			cmd.SetContext(context.WithValue(cmd.Context(), "appConfig", appConfig))
+			cmd.SetContext(context.WithValue(cmd.Context(), appConfigKey, appConfig))
 
 			opts.Quality = strings.ToLower(opts.Quality)
-
 			return opts.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			appConfigVal := ctx.Value("appConfig")
-			appConfig, _ := appConfigVal.(*config.Config)
+			appConfig := cmd.Context().Value(appConfigKey).(*config.Config)
 
-			dl := downloader.New(appConfig, resourceType)
-			if err := dl.Run(ctx, opts, args[0]); err != nil {
-				if errors.Is(err, context.Canceled) {
-					return nil
-				}
-
-				return err
+			err := downloader.New(appConfig, resourceType).Run(cmd.Context(), opts, args[0])
+			if errors.Is(err, context.Canceled) {
+				return nil
 			}
-
-			return nil
+			return err
 		},
 	}
 
-	switch resourceType {
-	case "artist":
-		cmd.Short = "Download top songs from an artist"
+	if resourceType == "artist" {
 		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
-	case "track":
-		cmd.Short = "Download a single track"
 	}
 
 	return cmd
+}
+
+func downloadShort(resourceType string) string {
+	switch resourceType {
+	case "artist":
+		return "Download top songs from an artist"
+	case "track":
+		return "Download a single track"
+	case "album":
+		return "Download songs from an album"
+	default:
+		return fmt.Sprintf("Download songs from a %s", resourceType)
+	}
 }

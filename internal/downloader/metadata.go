@@ -10,81 +10,69 @@ import (
 	"github.com/mathismqn/godeez/internal/provider"
 )
 
+type bpmKey struct {
+	BPM string
+	Key string
+}
+
 type metadataResult struct {
-	bpmKey   provider.BPMKey
+	bpmKey   bpmKey
 	genre    string
 	warnings []string
 }
 
-type metadataFetcher struct {
-	httpClient *http.Client
-}
-
-func newMetadataFetcher(httpClient *http.Client) *metadataFetcher {
-	return &metadataFetcher{
-		httpClient: httpClient,
-	}
-}
-
-func (mf *metadataFetcher) fetch(ctx context.Context, song *deezer.Song, opts Options) metadataResult {
-	result := metadataResult{
-		bpmKey:   provider.BPMKey{},
-		genre:    "",
-		warnings: []string{},
-	}
-
+func fetchMetadata(httpClient *http.Client, ctx context.Context, song *deezer.Song, opts Options) metadataResult {
 	if !opts.BPM && !opts.Genre {
-		return result
+		return metadataResult{}
 	}
 
-	bmpChan := make(chan provider.BPMKey, 1)
-	bmpErrChan := make(chan error, 1)
-	genreChan := make(chan string, 1)
-	genreErrChan := make(chan error, 1)
+	type bpmResult struct {
+		value bpmKey
+		err   error
+	}
+	type genreResult struct {
+		value string
+		err   error
+	}
+
+	bpmChan := make(chan bpmResult, 1)
+	genreChan := make(chan genreResult, 1)
 
 	if opts.BPM {
 		go func() {
-			p := provider.BPMProvider{}
-			bmpKey, err := p.Fetch(ctx, mf.httpClient, song.Artist, song.Title, song.Duration)
-			if err != nil {
-				bmpErrChan <- err
-			} else {
-				bmpChan <- bmpKey
-			}
+			result, err := provider.FetchBPM(ctx, httpClient, song.Artist, song.Title, song.Duration)
+			bpmChan <- bpmResult{value: bpmKey{BPM: result.BPM, Key: result.Key}, err: err}
 		}()
 	}
 
 	if opts.Genre {
 		go func() {
-			p := provider.GenreProvider{}
-			genre, err := p.Fetch(ctx, mf.httpClient, song.Artist, song.GetTitle())
-			if err != nil {
-				genreErrChan <- err
-			} else {
-				genreChan <- genre
-			}
+			genre, err := provider.FetchGenre(ctx, httpClient, song.Artist, song.GetTitle())
+			genreChan <- genreResult{value: genre, err: err}
 		}()
 	}
 
+	var result metadataResult
+
 	if opts.BPM {
-		select {
-		case bmpKey := <-bmpChan:
-			result.bpmKey = bmpKey
-		case err := <-bmpErrChan:
-			if !errors.Is(err, context.Canceled) {
-				result.warnings = append(result.warnings, fmt.Sprintf("failed to fetch BPM and key: %v", err))
+		r := <-bpmChan
+		if r.err != nil {
+			if !errors.Is(r.err, context.Canceled) {
+				result.warnings = append(result.warnings, fmt.Sprintf("failed to fetch BPM and key: %v", r.err))
 			}
+		} else {
+			result.bpmKey = r.value
 		}
 	}
 
 	if opts.Genre {
-		select {
-		case genre := <-genreChan:
-			result.genre = genre
-		case err := <-genreErrChan:
-			if !errors.Is(err, context.Canceled) {
-				result.warnings = append(result.warnings, fmt.Sprintf("failed to fetch genre: %v", err))
+		r := <-genreChan
+		if r.err != nil {
+			if !errors.Is(r.err, context.Canceled) {
+				result.warnings = append(result.warnings, fmt.Sprintf("failed to fetch genre: %v", r.err))
 			}
+		} else {
+			result.genre = r.value
 		}
 	}
 

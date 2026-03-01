@@ -15,6 +15,7 @@ var watchAddCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		id := args[0]
+
 		ok, err := store.IsWatched(id)
 		if err != nil {
 			return err
@@ -30,12 +31,11 @@ var watchAddCmd = &cobra.Command{
 			BPM:     opts.BPM,
 			Timeout: opts.Timeout,
 		}
-
 		if err := playlist.Save(); err != nil {
 			return fmt.Errorf("failed to add playlist %s to watch list: %w", id, err)
 		}
-		fmt.Printf("Playlist %s added to watch list\n", id)
 
+		fmt.Printf("Playlist %s added to watch list\n", id)
 		return nil
 	},
 }

@@ -14,40 +14,43 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type BPMProvider struct{}
-
 type BPMKey struct {
 	BPM string
 	Key string
 }
 
-func (p BPMProvider) Fetch(ctx context.Context, httpClient *http.Client, artist, title, duration string) (BPMKey, error) {
-	url, err := p.findSongURL(ctx, httpClient, artist, title, duration)
+var (
+	bpmRegex  = regexp.MustCompile(`tempo of <span[^>]*>(\d+) BPM`)
+	keyRegex  = regexp.MustCompile(`with a <span[^>]*>([A-G](?:♯|#|♭|b)?(?:/[A-G](?:♯|#|♭|b)?)?)</span> key`)
+	modeRegex = regexp.MustCompile(`a  <span[^>]*>([a-z]+)</span> mode`)
+)
+
+func FetchBPM(ctx context.Context, httpClient *http.Client, artist, title, duration string) (BPMKey, error) {
+	songURL, err := findSongURL(ctx, httpClient, artist, title, duration)
 	if err != nil {
 		return BPMKey{}, err
 	}
 
-	html, err := p.fetchPage(ctx, httpClient, url)
+	html, err := fetchBPMPage(ctx, httpClient, songURL)
 	if err != nil {
 		return BPMKey{}, err
 	}
 
-	return p.parse(html)
+	return parseBPM(html)
 }
 
-func (p BPMProvider) findSongURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
-	rootUrl := "https://songbpm.com"
-	reqUrl := rootUrl + "/searches"
+func findSongURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
+	const rootURL = "https://songbpm.com"
 
 	values := neturl.Values{}
 	values.Add("query", fmt.Sprintf("%s %s", artist, title))
 
-	req, err := http.NewRequestWithContext(ctx, "POST", reqUrl, bytes.NewBufferString(values.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", rootURL+"/searches", bytes.NewBufferString(values.Encode()))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Origin", "https://songbpm.com")
+	req.Header.Set("Origin", rootURL)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -64,20 +67,22 @@ func (p BPMProvider) findSongURL(ctx context.Context, httpClient *http.Client, a
 		return "", err
 	}
 
-	var (
-		found bool
-		url   string
-	)
+	wantDuration, err := strconv.Atoi(duration)
+	if err != nil {
+		return "", fmt.Errorf("invalid duration: %w", err)
+	}
 
-	doc.Find("a.flex.flex-col").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
-		lowerSelection := strings.ToLower(selection.Text())
-		lowerTitle := strings.ToLower(title)
-		lowerArtist := strings.ToLower(artist)
-		if !strings.Contains(lowerSelection, lowerTitle) || !strings.Contains(lowerSelection, lowerArtist) {
+	lowerTitle := strings.ToLower(title)
+	lowerArtist := strings.ToLower(artist)
+
+	var matchURL string
+	doc.Find("a.flex.flex-col").EachWithBreak(func(_ int, sel *goquery.Selection) bool {
+		text := strings.ToLower(sel.Text())
+		if !strings.Contains(text, lowerTitle) || !strings.Contains(text, lowerArtist) {
 			return true
 		}
 
-		durationStr := strings.TrimSpace(selection.Find("div.flex-1.flex-col.items-center").Eq(1).Find("span.text-2xl").Text())
+		durationStr := strings.TrimSpace(sel.Find("div.flex-1.flex-col.items-center").Eq(1).Find("span.text-2xl").Text())
 		parts := strings.Split(durationStr, ":")
 		if len(parts) != 2 {
 			return true
@@ -91,31 +96,24 @@ func (p BPMProvider) findSongURL(ctx context.Context, httpClient *http.Client, a
 			return true
 		}
 
+		const toleranceSec = 2
 		foundDuration := minutes*60 + seconds
-		wantDuration, err := strconv.Atoi(duration)
-		if err != nil {
+		if foundDuration <= wantDuration-toleranceSec || foundDuration >= wantDuration+toleranceSec {
 			return true
 		}
 
-		const durationToleranceSec = 2
-		if foundDuration <= (wantDuration-durationToleranceSec) || foundDuration >= (wantDuration+durationToleranceSec) {
-			return true
-		}
-
-		url = selection.AttrOr("href", "")
-		found = true
-
+		matchURL = sel.AttrOr("href", "")
 		return false
 	})
 
-	if !found {
+	if matchURL == "" {
 		return "", fmt.Errorf("no data found")
 	}
 
-	return rootUrl + url, nil
+	return rootURL + matchURL, nil
 }
 
-func (p BPMProvider) fetchPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
+func fetchBPMPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", err
@@ -139,42 +137,23 @@ func (p BPMProvider) fetchPage(ctx context.Context, httpClient *http.Client, url
 	return string(body), nil
 }
 
-func (p BPMProvider) parse(html string) (BPMKey, error) {
-	bpmRegex := regexp.MustCompile(`tempo of <span[^>]*>(\d+) BPM`)
+func parseBPM(html string) (BPMKey, error) {
 	bpmMatch := bpmRegex.FindStringSubmatch(html)
-
-	keyRegex := regexp.MustCompile(`with a <span[^>]*>([A-G](?:♯|#|♭|b)?(?:/[A-G](?:♯|#|♭|b)?)?)</span> key`)
 	keyMatch := keyRegex.FindStringSubmatch(html)
-
-	modeRegex := regexp.MustCompile(`a  <span[^>]*>([a-z]+)</span> mode`)
 	modeMatch := modeRegex.FindStringSubmatch(html)
 
 	if len(bpmMatch) != 2 || len(keyMatch) != 2 || len(modeMatch) != 2 {
 		return BPMKey{}, fmt.Errorf("no data found")
 	}
 
-	isMinor := false
 	bpm := bpmMatch[1]
-	key := keyMatch[1]
+	key := strings.SplitN(keyMatch[1], "/", 2)[0]
+	key = strings.ReplaceAll(key, "\u266f", "#")
+	key = strings.ReplaceAll(key, "\u266d", "b")
+
 	if modeMatch[1] == "minor" {
-		isMinor = true
-	}
-
-	if strings.Contains(key, "/") {
-		parts := strings.Split(key, "/")
-		key = parts[0]
-	}
-
-	key = strings.ReplaceAll(key, "♯", "#")
-	key = strings.ReplaceAll(key, "♭", "b")
-
-	if isMinor && !strings.HasSuffix(key, "m") {
 		key += "m"
 	}
 
-	return BPMKey{
-		BPM: bpm,
-		Key: key,
-	}, nil
-
+	return BPMKey{BPM: bpm, Key: key}, nil
 }

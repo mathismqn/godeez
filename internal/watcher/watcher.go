@@ -26,12 +26,11 @@ func New(appConfig *config.Config) *Watcher {
 		log.Fatalf("Failed to open log file: %v\n", err)
 	}
 
-	base := log.New(file, "", log.LstdFlags)
-	log := logger.New(base)
+	l := logger.New(log.New(file, "", log.LstdFlags))
 
 	return &Watcher{
 		appConfig: appConfig,
-		logger:    log,
+		logger:    l,
 	}
 }
 
@@ -39,33 +38,26 @@ func (w *Watcher) Run(ctx context.Context, opts downloader.Options) {
 	w.logger.Infof("Starting watcher...")
 
 	for {
+		playlists, err := store.ListWatchedPlaylists()
+		if err != nil {
+			w.logger.Errorf("Failed to list watched playlists: %v", err)
+		}
+
+		for _, playlist := range playlists {
+			dl := downloader.New(w.appConfig, "playlist")
+			dl.Logger = w.logger
+			if err := dl.Run(ctx, opts, playlist.ID); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return
+				}
+				w.logger.Errorf("Playlist %s: %v", playlist.ID, err)
+			}
+		}
+
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			playlists, err := store.ListWatchedPlaylists()
-			if err != nil {
-				w.logger.Errorf("Failed to list watched playlists: %v\n", err)
-			} else {
-				for _, playlist := range playlists {
-					dl := downloader.New(w.appConfig, "playlist")
-					dl.Logger = w.logger
-					if err := dl.Run(ctx, opts, playlist.ID); err != nil {
-						if errors.Is(err, context.Canceled) {
-							return
-						}
-
-						w.logger.Errorf("Playlist %s: %v\n", playlist.ID, err)
-					}
-				}
-			}
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(15 * time.Minute):
-				// Continue to the next iteration to check for updates
-			}
+		case <-time.After(15 * time.Minute):
 		}
 	}
 }

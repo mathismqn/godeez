@@ -4,15 +4,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NOTE: The watch command is disabled due to database concurrency issues.
+// To re-enable, uncomment RootCmd.AddCommand(watchCmd) in init().
 var watchCmd = &cobra.Command{
 	Use:   "watch",
 	Short: "Watch playlists and auto-download new tracks",
 }
 
-// TEMPORARILY DISABLED:
-// The `watch` command and all its subcommands are currently disabled
-// due to known issues (e.g., database access conflicts with `download`).
-// To re-enable, uncomment the line below.
 func init() {
 	// RootCmd.AddCommand(watchCmd)
 }

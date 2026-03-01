@@ -10,22 +10,7 @@ import (
 	"time"
 )
 
-type UserDataResponse struct {
-	Results struct {
-		APIToken string `json:"checkForm"`
-		User     struct {
-			Id      int `json:"USER_ID"`
-			Options struct {
-				LicenseToken  string `json:"license_token"`
-				MobileOffline bool   `json:"mobile_offline"`
-				WebOffline    bool   `json:"web_offline"`
-			} `json:"OPTIONS"`
-		} `json:"USER"`
-	} `json:"results"`
-}
-
 type Session struct {
-	ArlCookie    string
 	APIToken     string
 	LicenseToken string
 	HttpClient   *http.Client
@@ -68,22 +53,32 @@ func Authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 		return nil, err
 	}
 
-	var res UserDataResponse
+	var res struct {
+		Results struct {
+			APIToken string `json:"checkForm"`
+			User     struct {
+				ID      int `json:"USER_ID"`
+				Options struct {
+					LicenseToken  string `json:"license_token"`
+					MobileOffline bool   `json:"mobile_offline"`
+					WebOffline    bool   `json:"web_offline"`
+				} `json:"OPTIONS"`
+			} `json:"USER"`
+		} `json:"results"`
+	}
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
-	if res.Results.User.Id == 0 {
+	if res.Results.User.ID == 0 {
 		return nil, fmt.Errorf("invalid arl cookie")
 	}
 
-	isPremium := res.Results.User.Options.MobileOffline || res.Results.User.Options.WebOffline
-
+	opts := res.Results.User.Options
 	return &Session{
-		ArlCookie:    arlCookie,
 		APIToken:     res.Results.APIToken,
-		LicenseToken: res.Results.User.Options.LicenseToken,
+		LicenseToken: opts.LicenseToken,
 		HttpClient:   client,
-		Premium:      isPremium,
+		Premium:      opts.MobileOffline || opts.WebOffline,
 	}, nil
 }

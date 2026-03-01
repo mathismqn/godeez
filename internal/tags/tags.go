@@ -10,17 +10,15 @@ import (
 )
 
 type tagger interface {
-	addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error
+	addTags(resource deezer.Resource, song *deezer.Song, cover []byte, filePath, tempo, key, genre string) error
 }
 
 func newTagger(filePath string) (tagger, error) {
-	ext := path.Ext(filePath)
-	if ext == ".mp3" {
+	if path.Ext(filePath) == ".mp3" {
 		tag, err := id3v2.Open(filePath, id3v2.Options{Parse: true})
 		if err != nil {
 			return nil, err
 		}
-
 		return &id3v2Tagger{tag: tag}, nil
 	}
 
@@ -28,11 +26,9 @@ func newTagger(filePath string) (tagger, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmts, idx, err := extractFLACComment(file)
-	if err != nil {
-		return nil, err
-	}
-	if cmts == nil && idx > 0 {
+
+	cmts, idx := extractFLACComment(file)
+	if cmts == nil {
 		cmts = flacvorbis.New()
 	}
 
@@ -40,10 +36,9 @@ func newTagger(filePath string) (tagger, error) {
 }
 
 func AddTags(resource deezer.Resource, song *deezer.Song, cover []byte, filePath, tempo, key, genre string) error {
-	tagger, err := newTagger(filePath)
+	t, err := newTagger(filePath)
 	if err != nil {
 		return err
 	}
-
-	return tagger.addTags(resource, song, cover, filePath, tempo, key, genre)
+	return t.addTags(resource, song, cover, filePath, tempo, key, genre)
 }

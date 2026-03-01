@@ -11,23 +11,22 @@ import (
 	"github.com/mathismqn/godeez/internal/logger"
 )
 
-type downloadStats struct {
-	downloaded int
-	skipped    int
-	failed     int
-}
-
 type downloadResult struct {
-	success  bool
 	skipped  bool
 	path     string
 	warnings []string
 	err      error
 }
 
+type downloadStats struct {
+	downloaded int
+	skipped    int
+	failed     int
+}
+
 type progressTracker struct {
 	logger       *logger.Logger
-	stats        *downloadStats
+	stats        downloadStats
 	totalSongs   int
 	resourceType string
 }
@@ -35,20 +34,18 @@ type progressTracker struct {
 func newProgressTracker(logger *logger.Logger, totalSongs int, resourceType string) *progressTracker {
 	return &progressTracker{
 		logger:       logger,
-		stats:        &downloadStats{},
 		totalSongs:   totalSongs,
 		resourceType: resourceType,
 	}
 }
 
 func (pt *progressTracker) startDownload(index int, song *deezer.Song) *spinner.Spinner {
-	songTitle := song.GetTitle()
 	trackProgress := fmt.Sprintf("[%d/%d]", index+1, pt.totalSongs)
 
 	sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	sp.Writer = os.Stdout
 	sp.Prefix = trackProgress + " "
-	sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, songTitle)
+	sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", song.Artist, song.GetTitle())
 	sp.Start()
 
 	return sp
@@ -73,13 +70,13 @@ func (pt *progressTracker) handleResult(index int, song *deezer.Song, result dow
 		return
 	}
 
+	pt.stats.downloaded++
+	pt.logger.Infof("Downloaded %s - %s\n", song.Artist, songTitle)
+
 	symbol := "✔"
 	if len(result.warnings) > 0 {
 		symbol = "⚠"
 	}
-
-	pt.stats.downloaded++
-	pt.logger.Infof("Downloaded %s - %s\n", song.Artist, songTitle)
 	fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, song.Artist, songTitle)
 
 	for _, w := range result.warnings {
