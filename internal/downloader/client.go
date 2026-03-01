@@ -167,8 +167,11 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	}
 
 	metadataFetcher := newMetadataFetcher(c.deezerClient.Session.HttpClient)
-	metadataResult := metadataFetcher.fetch(ctx, song, opts)
-	warnings = append(warnings, metadataResult.warnings...)
+	metadataChan := make(chan metadataResult, 1)
+	go func() {
+		metadataResult := metadataFetcher.fetch(ctx, song, opts)
+		metadataChan <- metadataResult
+	}()
 
 	stream, err := c.deezerClient.GetMediaStream(ctx, media, song.ID)
 	if err != nil {
@@ -195,6 +198,9 @@ func (c *Client) downloadSong(ctx context.Context, resource deezer.Resource, son
 	if err != nil && !errors.Is(err, context.Canceled) {
 		warnings = append(warnings, fmt.Sprintf("failed to fetch cover image: %v", err))
 	}
+
+	metadataResult := <-metadataChan
+	warnings = append(warnings, metadataResult.warnings...)
 
 	finalizeWarnings := c.finalizeDownload(resource, song, outputPath, mediaFormat, metadataResult.genre, cover, metadataResult.bpmKey)
 	warnings = append(warnings, finalizeWarnings...)
