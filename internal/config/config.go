@@ -17,9 +17,6 @@ type Config struct {
 
 func New() (*Config, error) {
 	arl := os.Getenv("DEEZER_ARL")
-	if arl == "" {
-		return nil, fmt.Errorf("DEEZER_ARL is not set. Export it in your shell: export DEEZER_ARL='your_cookie'")
-	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
