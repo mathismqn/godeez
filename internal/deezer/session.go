@@ -71,7 +71,7 @@ func Authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	}
 
 	if res.Results.User.ID == 0 {
-		return nil, fmt.Errorf("invalid arl cookie")
+		return nil, fmt.Errorf("invalid or expired arl cookie")
 	}
 
 	opts := res.Results.User.Options
