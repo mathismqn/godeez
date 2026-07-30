@@ -31,8 +31,8 @@ func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
 }
 
 func resolveSession(ctx context.Context, appConfig *config.Config) (*Session, error) {
-	if appConfig.ArlCookie != "" {
-		return Authenticate(ctx, appConfig.ArlCookie)
+	if appConfig.ARLCookie != "" {
+		return Authenticate(ctx, appConfig.ARLCookie)
 	}
 
 	var session *Session
