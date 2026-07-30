@@ -19,8 +19,9 @@ const appConfigKey contextKey = "appConfig"
 var opts downloader.Options
 
 var downloadCmd = &cobra.Command{
-	Use:   "download",
-	Short: "Download songs from Deezer",
+	Use:         "download",
+	Short:       "Download songs from Deezer",
+	Annotations: map[string]string{updateNoticeAnnotation: "true"},
 }
 
 func init() {
