@@ -12,5 +12,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	cmd.RootCmd.ExecuteContext(ctx)
+	if err := cmd.RootCmd.ExecuteContext(ctx); err != nil {
+		stop()
+		os.Exit(1)
+	}
 }
