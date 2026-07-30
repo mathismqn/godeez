@@ -1,0 +1,47 @@
+version: 2
+
+project_name: godeez
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: godeez
+    main: .
+    binary: godeez
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/mathismqn/godeez/internal/buildinfo.version={{ .Version }}
+      - -X github.com/mathismqn/godeez/internal/buildinfo.commit={{ .FullCommit }}
+      - -X github.com/mathismqn/godeez/internal/buildinfo.date={{ .CommitDate }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats:
+      - binary
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-snapshot'
+
+# Release notes are written by hand in CHANGELOG.md
+changelog:
+  disable: true
+
+release:
+  prerelease: auto
