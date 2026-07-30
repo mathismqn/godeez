@@ -3,63 +3,66 @@ package deezer
 import (
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
-	"time"
+
+	"github.com/flytam/filenamify"
 )
 
+type Contributors struct {
+	MainArtists []string `json:"main_artist"`
+	Composers   []string `json:"composer"`
+	Authors     []string `json:"author"`
+}
+
+func (c *Contributors) UnmarshalJSON(data []byte) error {
+	if string(data) == "[]" {
+		*c = Contributors{}
+		return nil
+	}
+
+	type Alias Contributors
+	aux := (*Alias)(c)
+
+	return json.Unmarshal(data, aux)
+}
+
 type Track struct {
-	Results struct {
-		Data *Song `json:"DATA"`
-	} `json:"results"`
-}
-
-func (t *Track) String() string {
-	if t.Results.Data == nil {
-		return "Track: No data available"
-	}
-
-	duration, err := strconv.Atoi(t.Results.Data.Duration)
-	if err != nil {
-		duration = 0
-	}
-
-	return fmt.Sprintf(
-		`================= [ Track Info ] =================
-Title:    %s
-Artist:   %s
-Duration: %s
-==================================================`,
-		t.Results.Data.GetTitle(),
-		t.Results.Data.Artist,
-		time.Duration(duration)*time.Second,
-	)
-}
-
-func (t *Track) GetType() string {
-	return "Track"
+	ID           string       `json:"SNG_ID"`
+	Artist       string       `json:"ART_NAME"`
+	Title        string       `json:"SNG_TITLE"`
+	Version      string       `json:"VERSION"`
+	Cover        string       `json:"ALB_PICTURE"`
+	Contributors Contributors `json:"SNG_CONTRIBUTORS"`
+	Duration     string       `json:"DURATION"`
+	Gain         string       `json:"GAIN"`
+	ISRC         string       `json:"ISRC"`
+	TrackNumber  string       `json:"TRACK_NUMBER"`
+	TrackToken   string       `json:"TRACK_TOKEN"`
 }
 
 func (t *Track) GetTitle() string {
-	if t.Results.Data == nil {
-		return ""
+	if t.Version != "" {
+		return t.Title + " " + t.Version
 	}
-	return t.Results.Data.GetTitle()
+	return t.Title
 }
 
-func (t *Track) GetSongs() []*Song {
-	if t.Results.Data == nil {
-		return nil
+func (t *Track) GetFileName(resourceType, mediaFormat string) string {
+	ext := "mp3"
+	if mediaFormat == "FLAC" {
+		ext = "flac"
 	}
-	return []*Song{t.Results.Data}
-}
 
-func (t *Track) SetSongs(songs []*Song) {}
+	prefix := ""
+	if resourceType == "album" {
+		if n, err := strconv.Atoi(t.TrackNumber); err == nil {
+			prefix = fmt.Sprintf("%02d. ", n)
+		} else {
+			prefix = t.TrackNumber + ". "
+		}
+	}
 
-func (t *Track) GetOutputDir(outputDir string) string {
-	return path.Join(outputDir, "Singles")
-}
-
-func (t *Track) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, t)
+	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, t.Artist, t.GetTitle(), ext)
+	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 255})
+	return fileName
 }

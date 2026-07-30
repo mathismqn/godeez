@@ -9,7 +9,7 @@ import (
 )
 
 type DownloadInfo struct {
-	SongID     string    `json:"song_id"`
+	TrackID    string    `json:"song_id"`
 	Quality    string    `json:"quality"`
 	Path       string    `json:"path"`
 	Hash       string    `json:"hash"`
@@ -18,7 +18,7 @@ type DownloadInfo struct {
 
 var trackBucket = []byte("tracks")
 
-func GetDownloadInfo(songID string) (*DownloadInfo, error) {
+func GetDownloadInfo(trackID string) (*DownloadInfo, error) {
 	var info DownloadInfo
 
 	if err := db.View(func(tx *bbolt.Tx) error {
@@ -27,7 +27,7 @@ func GetDownloadInfo(songID string) (*DownloadInfo, error) {
 			return fmt.Errorf("bucket not found")
 		}
 
-		data := b.Get([]byte(songID))
+		data := b.Get([]byte(trackID))
 		if data == nil {
 			return fmt.Errorf("not found")
 		}
@@ -51,6 +51,6 @@ func (d *DownloadInfo) Save() error {
 			return err
 		}
 
-		return b.Put([]byte(d.SongID), data)
+		return b.Put([]byte(d.TrackID), data)
 	})
 }

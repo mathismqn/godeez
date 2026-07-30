@@ -16,8 +16,8 @@ type Playlist struct {
 			Creator  string `json:"PARENT_USERNAME"`
 			Duration int    `json:"DURATION"`
 		} `json:"DATA"`
-		Songs struct {
-			Data []*Song `json:"data"`
+		Tracks struct {
+			Data []*Track `json:"data"`
 		} `json:"SONGS"`
 	} `json:"results"`
 }
@@ -32,7 +32,7 @@ Duration: %s
 =================================================`,
 		p.Results.Data.Title,
 		p.Results.Data.Creator,
-		len(p.Results.Songs.Data),
+		len(p.Results.Tracks.Data),
 		time.Duration(p.Results.Data.Duration)*time.Second,
 	)
 }
@@ -45,12 +45,12 @@ func (p *Playlist) GetTitle() string {
 	return p.Results.Data.Title
 }
 
-func (p *Playlist) GetSongs() []*Song {
-	return p.Results.Songs.Data
+func (p *Playlist) GetTracks() []*Track {
+	return p.Results.Tracks.Data
 }
 
-func (p *Playlist) SetSongs(s []*Song) {
-	p.Results.Songs.Data = s
+func (p *Playlist) SetTracks(t []*Track) {
+	p.Results.Tracks.Data = t
 }
 
 func (p *Playlist) GetOutputDir(outputDir string) string {

@@ -13,8 +13,8 @@ var (
 	blowfishSecretKey = []byte("g4el58wc0zvf9na1")
 )
 
-func GetBlowfishKey(songID string) []byte {
-	hash := md5.Sum([]byte(songID))
+func GetBlowfishKey(trackID string) []byte {
+	hash := md5.Sum([]byte(trackID))
 	hashHex := hex.EncodeToString(hash[:])
 
 	key := make([]byte, len(blowfishSecretKey))

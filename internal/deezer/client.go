@@ -79,7 +79,7 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 		idKey = "alb_id"
 	case *Artist:
 		idKey = "art_id"
-	case *Track:
+	case *Single:
 		idKey = "sng_id"
 	default:
 		return fmt.Errorf("unsupported resource type: %T", resource)
@@ -134,14 +134,14 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 	return resource.Unmarshal(body)
 }
 
-func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*Media, error) {
+func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
 	qualityFormats := map[string]string{
 		"mp3_128": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
 		"mp3_320": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
 		"flac":    `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
 	}
 
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.LicenseToken, qualityFormats[quality], song.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.LicenseToken, qualityFormats[quality], track.TrackToken)
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
@@ -188,8 +188,8 @@ func (c *Client) FetchMedia(ctx context.Context, song *Song, quality string) (*M
 	return &media, nil
 }
 
-func (c *Client) FetchCoverImage(ctx context.Context, song *Song) ([]byte, error) {
-	url := fmt.Sprintf("https://e-cdn-images.dzcdn.net/images/cover/%s/500x500-000000-80-0-0.jpg", song.Cover)
+func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, error) {
+	url := fmt.Sprintf("https://e-cdn-images.dzcdn.net/images/cover/%s/500x500-000000-80-0-0.jpg", track.Cover)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err

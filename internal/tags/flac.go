@@ -16,13 +16,13 @@ type flacTagger struct {
 	index int
 }
 
-func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error {
+func (t *flacTagger) addTags(resource deezer.Resource, track *deezer.Track, cover []byte, path, tempo, key, genre string) error {
 	if album, ok := resource.(*deezer.Album); ok {
 		if parts := strings.Split(album.Results.Data.PhysicalReleaseDate, "-"); len(parts) == 3 {
 			album.Results.Data.PhysicalReleaseDate = parts[0]
 		}
 
-		t.addTag("TRACKNUMBER", song.TrackNumber)
+		t.addTag("TRACKNUMBER", track.TrackNumber)
 		t.addTag("ALBUMARTIST", album.Results.Data.Artist)
 		t.addTag("ALBUM", album.Results.Data.Title)
 		t.addTag("PUBLISHER", album.Results.Data.Label)
@@ -32,13 +32,13 @@ func (t *flacTagger) addTags(resource deezer.Resource, song *deezer.Song, cover 
 		t.addTag("COPYRIGHT", album.Results.Data.Copyright)
 	}
 
-	t.addTag("ARTIST", strings.Join(song.Contributors.MainArtists, ", "))
-	t.addTag("TITLE", song.GetTitle())
-	t.addTag("COMPOSER", strings.Join(song.Contributors.Composers, ", "))
-	t.addTag("LYRICIST", strings.Join(song.Contributors.Authors, ", "))
+	t.addTag("ARTIST", strings.Join(track.Contributors.MainArtists, ", "))
+	t.addTag("TITLE", track.GetTitle())
+	t.addTag("COMPOSER", strings.Join(track.Contributors.Composers, ", "))
+	t.addTag("LYRICIST", strings.Join(track.Contributors.Authors, ", "))
 	t.addTag("GENRE", genre)
-	t.addTag("REPLAYGAIN_TRACK_GAIN", song.Gain)
-	t.addTag("ISRC", song.ISRC)
+	t.addTag("REPLAYGAIN_TRACK_GAIN", track.Gain)
+	t.addTag("ISRC", track.ISRC)
 	t.addTag("BPM", tempo)
 	t.addTag("KEY", key)
 	t.addTag("INITIALKEY", key)

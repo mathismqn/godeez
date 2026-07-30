@@ -26,12 +26,12 @@ var (
 )
 
 func FetchBPM(ctx context.Context, httpClient *http.Client, artist, title, duration string) (BPMKey, error) {
-	songURL, err := findSongURL(ctx, httpClient, artist, title, duration)
+	trackURL, err := findTrackURL(ctx, httpClient, artist, title, duration)
 	if err != nil {
 		return BPMKey{}, err
 	}
 
-	html, err := fetchBPMPage(ctx, httpClient, songURL)
+	html, err := fetchBPMPage(ctx, httpClient, trackURL)
 	if err != nil {
 		return BPMKey{}, err
 	}
@@ -39,7 +39,7 @@ func FetchBPM(ctx context.Context, httpClient *http.Client, artist, title, durat
 	return parseBPM(html)
 }
 
-func findSongURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
+func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
 	const rootURL = "https://songbpm.com"
 
 	values := neturl.Values{}

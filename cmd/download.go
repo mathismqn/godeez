@@ -20,7 +20,7 @@ var opts downloader.Options
 
 var downloadCmd = &cobra.Command{
 	Use:         "download",
-	Short:       "Download songs from Deezer",
+	Short:       "Download tracks from Deezer",
 	Annotations: map[string]string{updateNoticeAnnotation: "true"},
 }
 
@@ -31,7 +31,7 @@ func init() {
 	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
 	downloadCmd.PersistentFlags().BoolVar(&opts.Genre, "genre", false, "fetch genre and add to file tags")
-	downloadCmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the song download if the quality is not available")
+	downloadCmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the download if the requested quality is unavailable")
 
 	downloadCmd.AddCommand(
 		newDownloadCmd("album"),
@@ -68,7 +68,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 	}
 
 	if resourceType == "artist" {
-		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of songs to download")
+		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of tracks to download")
 	}
 
 	return cmd
@@ -77,12 +77,12 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 func downloadShort(resourceType string) string {
 	switch resourceType {
 	case "artist":
-		return "Download top songs from an artist"
+		return "Download an artist's top tracks"
 	case "track":
 		return "Download a single track"
 	case "album":
-		return "Download songs from an album"
+		return "Download tracks from an album"
 	default:
-		return fmt.Sprintf("Download songs from a %s", resourceType)
+		return fmt.Sprintf("Download tracks from a %s", resourceType)
 	}
 }

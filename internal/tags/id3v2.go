@@ -13,17 +13,17 @@ type id3v2Tagger struct {
 	tag *id3v2.Tag
 }
 
-func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover []byte, path, tempo, key, genre string) error {
+func (t *id3v2Tagger) addTags(resource deezer.Resource, track *deezer.Track, cover []byte, path, tempo, key, genre string) error {
 	defer t.tag.Close()
 
-	duration, err := strconv.Atoi(song.Duration)
+	duration, err := strconv.Atoi(track.Duration)
 	if err != nil {
 		return err
 	}
-	song.Duration = fmt.Sprintf("%d", duration*1000)
+	track.Duration = fmt.Sprintf("%d", duration*1000)
 
 	if album, ok := resource.(*deezer.Album); ok {
-		t.addTag("TRCK", song.TrackNumber)
+		t.addTag("TRCK", track.TrackNumber)
 		t.addTag("TPE2", album.Results.Data.Artist)
 		t.addTag("TALB", album.Results.Data.Title)
 		t.addTag("TPUB", album.Results.Data.Label)
@@ -33,16 +33,16 @@ func (t *id3v2Tagger) addTags(resource deezer.Resource, song *deezer.Song, cover
 		t.addTag("TCOP", album.Results.Data.Copyright)
 	}
 
-	t.addTag("TPE1", strings.Join(song.Contributors.MainArtists, ", "))
-	t.addTag("TIT2", song.GetTitle())
-	t.addTag("TCOM", strings.Join(song.Contributors.Composers, ", "))
-	t.addTag("TEXT", strings.Join(song.Contributors.Authors, ", "))
+	t.addTag("TPE1", strings.Join(track.Contributors.MainArtists, ", "))
+	t.addTag("TIT2", track.GetTitle())
+	t.addTag("TCOM", strings.Join(track.Contributors.Composers, ", "))
+	t.addTag("TEXT", strings.Join(track.Contributors.Authors, ", "))
 	t.addTag("TCON", genre)
-	t.addTag("TLEN", song.Duration)
+	t.addTag("TLEN", track.Duration)
 	t.addTag("TBPM", tempo)
 	t.addTag("TKEY", key)
-	t.addTXXX("GAIN", song.Gain)
-	t.addTXXX("ISRC", song.ISRC)
+	t.addTXXX("GAIN", track.Gain)
+	t.addTXXX("ISRC", track.ISRC)
 
 	t.tag.AddAttachedPicture(id3v2.PictureFrame{
 		Encoding:    t.tag.DefaultEncoding(),

@@ -7,8 +7,8 @@ import (
 	"github.com/mathismqn/godeez/internal/store"
 )
 
-func (c *Client) shouldSkipDownload(ctx context.Context, songID, mediaFormat string) (string, bool) {
-	existing, err := store.GetDownloadInfo(songID)
+func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
+	existing, err := store.GetDownloadInfo(trackID)
 	if err != nil || existing.Quality != mediaFormat {
 		return "", false
 	}

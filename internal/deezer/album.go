@@ -22,8 +22,8 @@ type Album struct {
 			Copyright           string `json:"COPYRIGHT"`
 			Duration            string `json:"DURATION"`
 		} `json:"DATA"`
-		Songs struct {
-			Data []*Song `json:"data"`
+		Tracks struct {
+			Data []*Track `json:"data"`
 		} `json:"SONGS"`
 	} `json:"results"`
 }
@@ -43,7 +43,7 @@ Duration: %s
 ==================================================`,
 		a.Results.Data.Title,
 		a.Results.Data.Artist,
-		len(a.Results.Songs.Data),
+		len(a.Results.Tracks.Data),
 		time.Duration(duration)*time.Second,
 	)
 }
@@ -56,12 +56,12 @@ func (a *Album) GetTitle() string {
 	return a.Results.Data.Title
 }
 
-func (a *Album) GetSongs() []*Song {
-	return a.Results.Songs.Data
+func (a *Album) GetTracks() []*Track {
+	return a.Results.Tracks.Data
 }
 
-func (a *Album) SetSongs(s []*Song) {
-	a.Results.Songs.Data = s
+func (a *Album) SetTracks(t []*Track) {
+	a.Results.Tracks.Data = t
 }
 
 func (a *Album) GetOutputDir(outputDir string) string {

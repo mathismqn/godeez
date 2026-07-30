@@ -16,19 +16,19 @@ type Artist struct {
 		Data struct {
 			Name string `json:"ART_NAME"`
 		} `json:"DATA"`
-		Songs struct {
-			Data []*Song `json:"data"`
+		Tracks struct {
+			Data []*Track `json:"data"`
 		} `json:"TOP"`
 	} `json:"results"`
 }
 
 func (a *Artist) String() string {
-	songs := a.Results.Songs.Data
-	count := len(songs)
+	tracks := a.Results.Tracks.Data
+	count := len(tracks)
 
 	totalSec := 0
-	for _, s := range songs {
-		if d, err := strconv.Atoi(s.Duration); err == nil {
+	for _, t := range tracks {
+		if d, err := strconv.Atoi(t.Duration); err == nil {
 			totalSec += d
 		}
 	}
@@ -43,8 +43,8 @@ func (a *Artist) String() string {
 	fmt.Fprintf(&b, "-------------------------------------------\n")
 	fmt.Fprintf(&b, "Top %d most popular tracks:\n", limit)
 	for i := 0; i < limit; i++ {
-		s := songs[i]
-		fmt.Fprintf(&b, "    %2d. %s – %s\n", i+1, s.Artist, s.GetTitle())
+		t := tracks[i]
+		fmt.Fprintf(&b, "    %2d. %s – %s\n", i+1, t.Artist, t.GetTitle())
 	}
 	fmt.Fprintf(&b, "===========================================\n")
 
@@ -59,12 +59,12 @@ func (a *Artist) GetTitle() string {
 	return a.Results.Data.Name
 }
 
-func (a *Artist) GetSongs() []*Song {
-	return a.Results.Songs.Data
+func (a *Artist) GetTracks() []*Track {
+	return a.Results.Tracks.Data
 }
 
-func (a *Artist) SetSongs(s []*Song) {
-	a.Results.Songs.Data = s
+func (a *Artist) SetTracks(t []*Track) {
+	a.Results.Tracks.Data = t
 }
 
 func (a *Artist) GetOutputDir(outputDir string) string {
