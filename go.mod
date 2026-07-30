@@ -2,16 +2,21 @@ module github.com/mathismqn/godeez
 
 go 1.25.0
 
-require github.com/spf13/cobra v1.10.2
+require (
+	github.com/spf13/cobra v1.10.2
+	github.com/zalando/go-keyring v0.2.8
+	golang.org/x/term v0.45.0
+)
 
 require (
 	github.com/andybalholm/cascadia v1.3.4 // indirect
+	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/fatih/color v1.19.0 // indirect
+	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 )
 

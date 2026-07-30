@@ -1,0 +1,27 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/mathismqn/godeez/internal/auth"
+	"github.com/spf13/cobra"
+)
+
+var logoutCmd = &cobra.Command{
+	Use:   "logout",
+	Short: "Remove stored Deezer credentials",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := auth.Clear(); err != nil {
+			return err
+		}
+
+		fmt.Println("Successfully logged out.")
+
+		return nil
+	},
+}
+
+func init() {
+	RootCmd.AddCommand(logoutCmd)
+}

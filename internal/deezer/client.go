@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mathismqn/godeez/internal/auth"
 	"github.com/mathismqn/godeez/internal/config"
 )
 
@@ -18,7 +19,7 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
-	session, err := Authenticate(ctx, appConfig.ArlCookie)
+	session, err := resolveSession(ctx, appConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate: %w", err)
 	}
@@ -27,6 +28,37 @@ func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
 		AppConfig: appConfig,
 		Session:   session,
 	}, nil
+}
+
+func resolveSession(ctx context.Context, appConfig *config.Config) (*Session, error) {
+	if appConfig.ARLCookie != "" {
+		return Authenticate(ctx, appConfig.ARLCookie)
+	}
+
+	var session *Session
+	validate := func(ctx context.Context, arl string) error {
+		s, err := Authenticate(ctx, arl)
+		if err != nil {
+			return err
+		}
+		session = s
+
+		return nil
+	}
+
+	arl, err := auth.Resolve(ctx, validate)
+	if err != nil {
+		return nil, err
+	}
+
+	if session == nil {
+		session, err = Authenticate(ctx, arl)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return session, nil
 }
 
 func (c *Client) FetchResource(ctx context.Context, resource Resource, id string) error {
