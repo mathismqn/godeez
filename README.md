@@ -10,10 +10,11 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 
 [Features](#features) •
 [Installation](#installation) •
+[Updating](#updating) •
 [Configuration](#configuration) •
 [Usage](#usage) •
 [Contributing](#contributing) •
-[Support](#⭐-support-the-project) •
+[Support](#support-the-project) •
 [License](#license)
 
 </div>
@@ -33,14 +34,58 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 To install **GoDeez**, download the latest binary for your platform from the [Releases](https://github.com/mathismqn/godeez/releases) page.
 
 1. Go to the [Releases](https://github.com/mathismqn/godeez/releases) page.
-2. Download the appropriate binary for your operating system (Windows, macOS, or Linux).
+2. Download the appropriate binary for your operating system and architecture, named `godeez_<version>_<os>_<arch>`.
 3. (Optional) Move the binary to a directory included in `$PATH` for easier access.
 
 Example (Linux/macOS):
 
 ```bash
-# Move the downloaded binary to /usr/local/bin for easy access from anywhere
-mv godeez-1.4.0-linux-amd64 /usr/local/bin/godeez
+# Make it executable and move it to /usr/local/bin for access from anywhere
+chmod +x godeez_1.5.0_linux_amd64
+mv godeez_1.5.0_linux_amd64 /usr/local/bin/godeez
+```
+
+Every release also ships a `checksums.txt`, so you can verify a download:
+
+```bash
+sha256sum -c checksums.txt --ignore-missing
+```
+
+### macOS
+
+The macOS binaries are not signed with an Apple Developer certificate, so
+Gatekeeper blocks them the first time. Clear the quarantine flag once:
+
+```bash
+xattr -d com.apple.quarantine /usr/local/bin/godeez
+```
+
+## Updating
+
+**GoDeez** can replace itself with the latest release:
+
+```bash
+# See whether a new version exists
+godeez update --check
+
+# Download, verify, and install it
+godeez update
+```
+
+The new binary is verified against the release's published SHA256 checksum
+before it replaces the current one. If **GoDeez** lives in a directory you do
+not own (such as `/usr/local/bin` on some systems), run `sudo godeez update`.
+
+To disable the notice about new versions:
+
+```bash
+export GODEEZ_NO_UPDATE_CHECK=1
+```
+
+To see what you are running:
+
+```bash
+godeez version
 ```
 
 ## Configuration
@@ -48,7 +93,7 @@ mv godeez-1.4.0-linux-amd64 /usr/local/bin/godeez
 **GoDeez** requires a Deezer ARL cookie for authentication. Set it as an environment variable:
 
 ```bash
-export DEEZER_ARL=”your_arl_cookie_here”
+export DEEZER_ARL="your_arl_cookie_here"
 ```
 
 To make it persistent, add the line above to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.).
@@ -85,6 +130,8 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   download    Download songs from Deezer
   help        Help about any command
+  update      Update GoDeez to the latest version
+  version     Print the GoDeez version
 
 Flags:
   -h, --help   help for godeez
@@ -108,7 +155,6 @@ Available Commands:
 
 Flags:
       --bpm                fetch BPM/key and add to file tags
-      --config string      config file (default ~/.godeez/config.toml)
       --genre              fetch genre and add to file tags
   -h, --help               help for download
   -q, --quality string     download quality [mp3_128, mp3_320, flac] (default "mp3_320")
@@ -144,9 +190,9 @@ Whether it’s a bug fix, a new feature, or improving documentation, your input 
 
 If you have an idea for improvement, feel free to fork the repository and submit a pull request. You can also open an issue if you spot a bug or have a feature suggestion.
 
-## ⭐ Support the Project
+## Support the Project
 
-If **GoDeez** helps you enjoy your music collection, please consider giving it a star!
+If **GoDeez** helps you enjoy your music collection, please consider giving it a ⭐!
 
 **Why star us?**
 
