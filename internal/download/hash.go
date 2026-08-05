@@ -1,4 +1,4 @@
-package downloader
+package download
 
 import (
 	"context"
@@ -58,4 +58,12 @@ func newHashIndex(ctx context.Context, root string) (*hashIndex, error) {
 func (h *hashIndex) find(hash string) (string, bool) {
 	path, ok := h.files[hash]
 	return path, ok
+}
+
+func (d *Downloader) initHashIndex(ctx context.Context) error {
+	d.hashIndexOnce.Do(func() {
+		d.hashIndex, d.hashIndexErr = newHashIndex(ctx, d.appConfig.OutputDir)
+	})
+
+	return d.hashIndexErr
 }

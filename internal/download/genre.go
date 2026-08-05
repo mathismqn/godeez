@@ -1,4 +1,4 @@
-package provider
+package download
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func toLower(ss []string) []string {
 	return out
 }
 
-func FetchGenre(ctx context.Context, httpClient *http.Client, artist, title string) (string, error) {
+func fetchGenre(ctx context.Context, httpClient *http.Client, artist, title string) (string, error) {
 	reqURL := fmt.Sprintf("https://www.last.fm/music/%s/%s/+tags", artist, title)
 
 	doc, err := fetchGenrePage(ctx, httpClient, reqURL)

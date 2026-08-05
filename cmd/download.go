@@ -9,7 +9,7 @@ import (
 
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/deezer"
-	"github.com/mathismqn/godeez/internal/downloader"
+	"github.com/mathismqn/godeez/internal/download"
 	"github.com/mathismqn/godeez/internal/store"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ func newDownloadCmd() *cobra.Command {
 		Annotations: map[string]string{updateNoticeAnnotation: "true"},
 	}
 
-	opts := &downloader.Options{}
+	opts := &download.Options{}
 	cmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "mp3_320", "download quality [mp3_128, mp3_320, flac]")
 	cmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
 	cmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
@@ -40,7 +40,7 @@ func newDownloadCmd() *cobra.Command {
 	return cmd
 }
 
-func newDownloadSubCmd(kind deezer.Kind, opts *downloader.Options) *cobra.Command {
+func newDownloadSubCmd(kind deezer.Kind, opts *download.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <%s_id>", kind, kind),
 		Short: downloadShort(kind),
@@ -62,7 +62,7 @@ func newDownloadSubCmd(kind deezer.Kind, opts *downloader.Options) *cobra.Comman
 			}
 			defer st.Close()
 
-			err = downloader.New(cfg, st, kind).Run(cmd.Context(), *opts, args[0])
+			err = download.New(cfg, st, kind).Run(cmd.Context(), *opts, args[0])
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}

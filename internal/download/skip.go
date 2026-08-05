@@ -1,4 +1,4 @@
-package downloader
+package download
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
-func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
-	existing, err := c.store.DownloadInfo(trackID)
+func (d *Downloader) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
+	existing, err := d.store.DownloadInfo(trackID)
 	if err != nil || existing.Quality != mediaFormat {
 		return "", false
 	}
@@ -20,17 +20,17 @@ func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat st
 		return "", false
 	}
 
-	if err := c.initHashIndex(ctx); err != nil {
+	if err := d.initHashIndex(ctx); err != nil {
 		return "", false
 	}
 
-	foundPath, ok := c.hashIndex.find(existing.Hash)
+	foundPath, ok := d.hashIndex.find(existing.Hash)
 	if !ok {
 		return "", false
 	}
 
 	existing.Path = foundPath
-	_ = c.store.PutDownloadInfo(existing)
+	_ = d.store.PutDownloadInfo(existing)
 
 	return foundPath, true
 }

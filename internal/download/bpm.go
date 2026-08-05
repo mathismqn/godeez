@@ -1,4 +1,4 @@
-package provider
+package download
 
 import (
 	"bytes"
@@ -14,26 +14,21 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-type BPMKey struct {
-	BPM string
-	Key string
-}
-
 var (
 	bpmRegex  = regexp.MustCompile(`tempo of <span[^>]*>(\d+) BPM`)
 	keyRegex  = regexp.MustCompile(`with a <span[^>]*>([A-G](?:♯|#|♭|b)?(?:/[A-G](?:♯|#|♭|b)?)?)</span> key`)
 	modeRegex = regexp.MustCompile(`a  <span[^>]*>([a-z]+)</span> mode`)
 )
 
-func FetchBPM(ctx context.Context, httpClient *http.Client, artist, title, duration string) (BPMKey, error) {
+func fetchBPM(ctx context.Context, httpClient *http.Client, artist, title, duration string) (bpmKey, error) {
 	trackURL, err := findTrackURL(ctx, httpClient, artist, title, duration)
 	if err != nil {
-		return BPMKey{}, err
+		return bpmKey{}, err
 	}
 
 	html, err := fetchBPMPage(ctx, httpClient, trackURL)
 	if err != nil {
-		return BPMKey{}, err
+		return bpmKey{}, err
 	}
 
 	return parseBPM(html)
@@ -137,13 +132,13 @@ func fetchBPMPage(ctx context.Context, httpClient *http.Client, url string) (str
 	return string(body), nil
 }
 
-func parseBPM(html string) (BPMKey, error) {
+func parseBPM(html string) (bpmKey, error) {
 	bpmMatch := bpmRegex.FindStringSubmatch(html)
 	keyMatch := keyRegex.FindStringSubmatch(html)
 	modeMatch := modeRegex.FindStringSubmatch(html)
 
 	if len(bpmMatch) != 2 || len(keyMatch) != 2 || len(modeMatch) != 2 {
-		return BPMKey{}, fmt.Errorf("no data found")
+		return bpmKey{}, fmt.Errorf("no data found")
 	}
 
 	bpm := bpmMatch[1]
@@ -155,5 +150,5 @@ func parseBPM(html string) (BPMKey, error) {
 		key += "m"
 	}
 
-	return BPMKey{BPM: bpm, Key: key}, nil
+	return bpmKey{BPM: bpm, Key: key}, nil
 }
