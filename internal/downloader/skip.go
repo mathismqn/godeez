@@ -3,7 +3,7 @@ package downloader
 import (
 	"context"
 
-	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
 func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
@@ -12,7 +12,7 @@ func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat st
 		return "", false
 	}
 
-	if fileutil.FileExists(existing.Path) {
+	if fsutil.Exists(existing.Path) {
 		return existing.Path, true
 	}
 
@@ -24,7 +24,7 @@ func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat st
 		return "", false
 	}
 
-	foundPath, ok := c.hashIndex.Find(existing.Hash)
+	foundPath, ok := c.hashIndex.find(existing.Hash)
 	if !ok {
 		return "", false
 	}

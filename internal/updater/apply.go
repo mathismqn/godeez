@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/mathismqn/godeez/internal/buildinfo"
-	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
 var managedPrefixes = []string{
@@ -100,7 +100,7 @@ func (u *Updater) Apply(ctx context.Context, release *Release) error {
 	if err != nil {
 		return err
 	}
-	defer fileutil.DeleteFile(tmp)
+	defer fsutil.Remove(tmp)
 
 	u.step("Verifying checksum")
 	if sum != want {
@@ -168,12 +168,12 @@ func (u *Updater) download(ctx context.Context, dir string, asset Asset) (string
 	hash := sha256.New()
 	if _, err := io.Copy(io.MultiWriter(f, hash), body); err != nil {
 		f.Close()
-		fileutil.DeleteFile(tmp)
+		fsutil.Remove(tmp)
 
 		return "", "", fmt.Errorf("failed to download %s: %w", asset.Name, err)
 	}
 	if err := f.Close(); err != nil {
-		fileutil.DeleteFile(tmp)
+		fsutil.Remove(tmp)
 
 		return "", "", err
 	}

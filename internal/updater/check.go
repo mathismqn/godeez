@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/mathismqn/godeez/internal/buildinfo"
-	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
 const noCheckEnv = "GODEEZ_NO_UPDATE_CHECK"
@@ -59,7 +59,7 @@ func writeCache(version string) error {
 	if err != nil {
 		return err
 	}
-	if err := fileutil.EnsureDir(filepath.Dir(path)); err != nil {
+	if err := fsutil.EnsureDir(filepath.Dir(path)); err != nil {
 		return err
 	}
 

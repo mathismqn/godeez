@@ -13,7 +13,7 @@ import (
 
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/deezer"
-	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/fsutil"
 	"github.com/mathismqn/godeez/internal/store"
 	"github.com/mathismqn/godeez/internal/tag"
 )
@@ -27,7 +27,7 @@ type Client struct {
 	deezerClient *deezer.Client
 
 	hashIndexOnce sync.Once
-	hashIndex     *fileutil.HashIndex
+	hashIndex     *hashIndex
 	hashIndexErr  error
 }
 
@@ -85,7 +85,7 @@ func (c *Client) prepareResource(ctx context.Context, id string, opts Options) (
 	}
 
 	outputDir := resource.GetOutputDir(c.appConfig.OutputDir)
-	if err := fileutil.EnsureDir(outputDir); err != nil {
+	if err := fsutil.EnsureDir(outputDir); err != nil {
 		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -156,7 +156,7 @@ func (c *Client) downloadTrack(ctx context.Context, resource deezer.Resource, tr
 
 	key := deezer.BlowfishKey(track.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
-		fileutil.DeleteFile(outputPath)
+		fsutil.Remove(outputPath)
 		return downloadResult{err: fmt.Errorf("failed to stream to file: %w", err)}
 	}
 
@@ -237,7 +237,7 @@ func (c *Client) finalizeDownload(resource deezer.Resource, track *deezer.Track,
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 
-	hash, err := fileutil.GetFileHash(outputPath)
+	hash, err := hashFile(outputPath)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to get file hash: %v", err))
 	}
@@ -259,7 +259,7 @@ func (c *Client) finalizeDownload(resource deezer.Resource, track *deezer.Track,
 
 func (c *Client) initHashIndex(ctx context.Context) error {
 	c.hashIndexOnce.Do(func() {
-		c.hashIndex, c.hashIndexErr = fileutil.NewHashIndex(ctx, c.appConfig.OutputDir)
+		c.hashIndex, c.hashIndexErr = newHashIndex(ctx, c.appConfig.OutputDir)
 	})
 
 	return c.hashIndexErr

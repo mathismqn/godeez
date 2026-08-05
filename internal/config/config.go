@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mathismqn/godeez/internal/fileutil"
+	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
 type Config struct {
@@ -22,7 +22,7 @@ func Load() (*Config, error) {
 	}
 
 	outputDir := filepath.Join(homeDir, "Music", "GoDeez")
-	if err := fileutil.EnsureDir(outputDir); err != nil {
+	if err := fsutil.EnsureDir(outputDir); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
