@@ -213,6 +213,7 @@ func (c *Client) MediaStream(ctx context.Context, media *Media) (io.ReadCloser, 
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 

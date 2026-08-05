@@ -42,7 +42,7 @@ func resolveTarget() (string, error) {
 	}
 
 	for _, prefix := range managedPrefixes {
-		if strings.HasPrefix(target, prefix) {
+		if target == prefix || strings.HasPrefix(target, prefix+"/") {
 			return "", fmt.Errorf("%s was installed by a package manager. Update it with that instead", target)
 		}
 	}
@@ -113,7 +113,7 @@ func (u *Updater) Apply(ctx context.Context, release *Release) error {
 
 	u.step("Replacing %s", target)
 
-	return replaceBinary(target, tmp)
+	return u.replaceBinary(target, tmp)
 }
 
 func (u *Updater) fetchChecksum(ctx context.Context, release *Release, assetName string) (string, error) {
@@ -153,6 +153,9 @@ func parseChecksums(r io.Reader, name string) (string, error) {
 }
 
 func (u *Updater) download(ctx context.Context, dir string, asset Asset) (string, string, error) {
+	ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
+	defer cancel()
+
 	body, err := u.get(ctx, asset.URL, nil)
 	if err != nil {
 		return "", "", err
@@ -181,7 +184,7 @@ func (u *Updater) download(ctx context.Context, dir string, asset Asset) (string
 	return tmp, hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func replaceBinary(target, tmp string) error {
+func (u *Updater) replaceBinary(target, tmp string) error {
 	if runtime.GOOS != "windows" {
 		return os.Rename(tmp, target)
 	}

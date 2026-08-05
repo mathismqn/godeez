@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	apiTimeout = 30 * time.Second
-	tmpPattern = ".godeez-update-*"
+	apiTimeout      = 30 * time.Second
+	downloadTimeout = 5 * time.Minute
+	tmpPattern      = ".godeez-update-*"
 )
 
 type Updater struct {

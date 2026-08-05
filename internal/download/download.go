@@ -81,6 +81,7 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 	if err := fsutil.EnsureDir(outputDir); err != nil {
 		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
 	}
+	sweepPartFiles(outputDir)
 
 	return resource, outputDir, nil
 }

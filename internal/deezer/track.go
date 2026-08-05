@@ -62,7 +62,27 @@ func (t *Track) Filename(kind Kind, mediaFormat string) string {
 		}
 	}
 
-	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, t.Artist, t.FullTitle(), ext)
-	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 255})
-	return fileName
+	base := fmt.Sprintf("%s%s - %s", prefix, t.Artist, t.FullTitle())
+	base, _ = filenamify.Filenamify(base, filenamify.Options{MaxLength: 255})
+	base = truncateBytes(base, 255-len(ext)-1-len("-id3v2"))
+
+	return base + "." + ext
+}
+
+func truncateBytes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	if len(s) <= max {
+		return s
+	}
+
+	last := 0
+	for i := range s {
+		if i > max {
+			return s[:last]
+		}
+		last = i
+	}
+	return s[:last]
 }

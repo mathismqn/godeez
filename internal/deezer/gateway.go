@@ -120,6 +120,10 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 		return "", "", "", err
 	}
 
+	if len(decrypted) < 96 {
+		return "", "", "", fmt.Errorf("unexpected response from gateway")
+	}
+
 	token := string(decrypted[0:64])
 	tokenKey := string(decrypted[64:80])
 	userKey := string(decrypted[80:96])

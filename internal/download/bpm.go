@@ -93,7 +93,7 @@ func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, d
 
 		const toleranceSec = 2
 		foundDuration := minutes*60 + seconds
-		if foundDuration <= wantDuration-toleranceSec || foundDuration >= wantDuration+toleranceSec {
+		if foundDuration < wantDuration-toleranceSec || foundDuration > wantDuration+toleranceSec {
 			return true
 		}
 

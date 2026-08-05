@@ -51,15 +51,16 @@ func (t *flacTagger) write(m Metadata) error {
 		t.file.Meta = append(t.file.Meta, &cmtsMeta)
 	}
 
-	picture, err := flacpicture.NewFromImageData(flacpicture.PictureTypeFrontCover, "Front cover", m.Cover, "image/jpeg")
-	if err != nil {
-		return err
+	if len(m.Cover) > 0 {
+		if picture, err := flacpicture.NewFromImageData(flacpicture.PictureTypeFrontCover, "Front cover", m.Cover, "image/jpeg"); err == nil {
+			pictureMeta := picture.Marshal()
+			t.file.Meta = append(t.file.Meta, &pictureMeta)
+		}
 	}
-	pictureMeta := picture.Marshal()
-	t.file.Meta = append(t.file.Meta, &pictureMeta)
 
 	tmpPath := t.path + ".tmp"
 	if err := t.file.Save(tmpPath); err != nil {
+		os.Remove(tmpPath)
 		return err
 	}
 	return os.Rename(tmpPath, t.path)

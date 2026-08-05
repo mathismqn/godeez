@@ -2,6 +2,7 @@ package deezer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -12,8 +13,13 @@ func resolveARL(ctx context.Context, validate func(ctx context.Context, arl stri
 	}
 
 	if creds != nil && creds.ARL != "" {
-		if verr := validate(ctx, creds.ARL); verr == nil {
+		verr := validate(ctx, creds.ARL)
+		if verr == nil {
 			return creds.ARL, nil
+		}
+
+		if !errors.Is(verr, ErrInvalidARL) {
+			return "", fmt.Errorf("stored session could not be validated: %w", verr)
 		}
 	}
 

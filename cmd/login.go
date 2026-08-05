@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -21,24 +23,61 @@ func newLoginCmd() *cobra.Command {
 				return err
 			}
 
-			email, password, err := promptCredentials()
-			if err != nil {
-				return err
+			err := runLogin(cmd.Context())
+			if errors.Is(err, context.Canceled) {
+				return nil
 			}
 
-			_, username, err := deezer.Login(cmd.Context(), email, password)
-			if err != nil {
-				return err
-			}
-
-			fmt.Printf("Successfully logged in as %s.\n", username)
-
-			return nil
+			return err
 		},
 	}
 }
 
-func promptCredentials() (string, string, error) {
+func runLogin(ctx context.Context) error {
+	email, password, err := promptCredentials(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, username, err := deezer.Login(ctx, email, password)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Successfully logged in as %s.\n", username)
+
+	return nil
+}
+
+func promptCredentials(ctx context.Context) (string, string, error) {
+	oldState, stateErr := term.GetState(int(os.Stdin.Fd()))
+
+	type credentials struct {
+		email    string
+		password string
+		err      error
+	}
+	resultChan := make(chan credentials, 1)
+	go func() {
+		var c credentials
+		c.email, c.password, c.err = readCredentials()
+		resultChan <- c
+	}()
+
+	select {
+	case c := <-resultChan:
+		return c.email, c.password, c.err
+	case <-ctx.Done():
+		if stateErr == nil {
+			term.Restore(int(os.Stdin.Fd()), oldState)
+		}
+		fmt.Println()
+
+		return "", "", ctx.Err()
+	}
+}
+
+func readCredentials() (string, string, error) {
 	fmt.Print("Email: ")
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
 	if err != nil {

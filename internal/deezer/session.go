@@ -3,12 +3,15 @@ package deezer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
 )
+
+var ErrInvalidARL = errors.New("invalid or expired ARL cookie")
 
 type Session struct {
 	APIToken     string
@@ -71,7 +74,7 @@ func authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	}
 
 	if res.Results.User.ID == 0 {
-		return nil, fmt.Errorf("invalid or expired ARL cookie")
+		return nil, ErrInvalidARL
 	}
 
 	opts := res.Results.User.Options

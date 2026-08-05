@@ -34,20 +34,19 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 		metadataChan <- fetchMetadata(d.deezerClient.Session.HTTPClient, ctx, track, opts)
 	}()
 
-	stream, err := d.deezerClient.MediaStream(ctx, media)
+	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
+	defer cancel()
+
+	stream, err := d.deezerClient.MediaStream(dlCtx, media)
 	if err != nil {
 		return downloadResult{err: fmt.Errorf("failed to get media stream: %w", err)}
 	}
 
-	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
-	defer cancel()
-
 	fileName := track.Filename(d.kind, mediaFormat)
-	outputPath := filepath.Join(outputDir, fileName)
+	outputPath := d.uniqueOutputPath(track.ID, filepath.Join(outputDir, fileName))
 
 	key := deezer.BlowfishKey(track.ID)
 	if err := d.streamToFile(dlCtx, stream, outputPath, key); err != nil {
-		fsutil.Remove(outputPath)
 		return downloadResult{err: fmt.Errorf("failed to stream to file: %w", err)}
 	}
 
@@ -63,10 +62,32 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	metadata := <-metadataChan
+
+	if err := ctx.Err(); err != nil {
+		fsutil.Remove(outputPath)
+		return downloadResult{err: err}
+	}
+
 	warnings = append(warnings, metadata.warnings...)
 	warnings = append(warnings, d.finalizeDownload(resource, track, outputPath, mediaFormat, metadata.genre, cover, metadata.bpmKey)...)
 
 	return downloadResult{warnings: warnings}
+}
+
+func (d *Downloader) uniqueOutputPath(trackID, path string) string {
+	owned := ""
+	if info, err := d.store.DownloadInfo(trackID); err == nil {
+		owned = info.Path
+	}
+
+	ext := filepath.Ext(path)
+	stem := strings.TrimSuffix(path, ext)
+	candidate := path
+	for i := 2; candidate != owned && fsutil.Exists(candidate); i++ {
+		candidate = fmt.Sprintf("%s (%d)%s", stem, i, ext)
+	}
+
+	return candidate
 }
 
 func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Track, outputPath, mediaFormat, genre string, cover []byte, bpmKey bpmKey) []string {

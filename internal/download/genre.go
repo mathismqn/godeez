@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -31,7 +34,9 @@ func toLower(ss []string) []string {
 }
 
 func fetchGenre(ctx context.Context, httpClient *http.Client, artist, title string) (string, error) {
-	reqURL := fmt.Sprintf("https://www.last.fm/music/%s/%s/+tags", artist, title)
+	// Escape the path segments: names containing '/', '?', or '#' would
+	// otherwise change the URL structure and fetch the wrong page.
+	reqURL := fmt.Sprintf("https://www.last.fm/music/%s/%s/+tags", url.PathEscape(artist), url.PathEscape(title))
 
 	doc, err := fetchGenrePage(ctx, httpClient, reqURL)
 	if err != nil {
@@ -116,7 +121,8 @@ func formatTags(tags []string) string {
 		}
 		words := strings.Fields(tag)
 		for i, w := range words {
-			words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+			r, size := utf8.DecodeRuneInString(w)
+			words[i] = string(unicode.ToUpper(r)) + strings.ToLower(w[size:])
 		}
 		formatted = append(formatted, strings.Join(words, " "))
 	}
