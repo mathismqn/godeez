@@ -67,6 +67,9 @@ godeez update --check
 
 # Download, verify, and install it
 godeez update
+
+# Reinstall even if already up to date
+godeez update --force
 ```
 
 The new binary is verified against the release's published SHA256 checksum
@@ -197,6 +200,8 @@ Flags:
 
 Use "godeez download [command] --help" for more information about a command.
 ```
+
+> **Note:** The `artist` command takes an extra `-l, --limit` flag to choose how many top tracks to download (default 10, maximum 100).
 
 ### Examples
 
