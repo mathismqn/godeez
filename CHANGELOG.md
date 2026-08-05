@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-05
+
+### Added
+
+- Add new `login` and `logout` commands to authenticate with your Deezer email and password. Credentials are stored in the system keyring. Requires `DEEZER_MOBILE_API_KEY` and `DEEZER_MOBILE_GW_KEY` to be set.
+- Add new `update` command to replace the binary in place with the latest release, with `--check` to only report availability and `--force` to reinstall.
+- Add new `version` command to print the version, commit, build date, and platform.
+- Notify when a newer version is available after a download completes.
+- Add WAV download quality (`--quality=wav`): the FLAC stream is converted locally to lossless WAV.
+
+### Changed
+
+- `DEEZER_ARL` is now optional. When it is unset, the credentials stored by `godeez login` are used instead, and expired sessions are renewed automatically.
+- Release binaries are now named `godeez_<version>_<os>_<arch>` (previously `godeez-<version>-<os>-<arch>`) and are published alongside a `checksums.txt` file.
+
+### Fixed
+
+- Interrupted downloads no longer leave partial files behind.
+- Avoid overwriting an existing file when another track resolves to the same name.
+- Report a clear error when the database is already in use by another process.
+- Migrate the legacy database when `~/.godeez` and `~/Music/GoDeez` are on different filesystems.
+- Write metadata tags even when the cover art or track duration is missing.
+
 ## [1.4.0] - 2026-03-01
 
 ### Added
@@ -32,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add new `track` command to download individual songs.
+- Add new `track` command to download individual tracks.
 - Add `--genre` flag to fetch and embed genre information into file metadata tags.
 
 ### Fixed
@@ -49,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Set default download quality to **MP3 320kbps**.
+- Set default download quality to MP3 320 kbps.
 
 ### Removed
 
@@ -63,16 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Restore ability to download tracks without a Deezer Premium account (limited to **MP3 128kbps** for free accounts).
+- Restore ability to download tracks without a Deezer Premium account (limited to MP3 128 kbps for free accounts).
 
 ## [1.1.0] - 2025-05-19
 
 ### Added
 
 - Support downloading full albums and playlists with more than 40 tracks (previous limit removed).
-- Fetch and embed **BPM** and **musical key** into metadata tags.
-- Add local **database system** (`tracks.db`) to track downloaded files and avoid re-downloading, even if files are renamed or moved.
-- Improve CLI **output formatting** for a cleaner and more informative user experience.
+- Fetch and embed BPM and musical key into metadata tags.
+- Add local database system (`tracks.db`) to track downloaded files and avoid re-downloading, even if files are renamed or moved.
+- Improve CLI output formatting for a cleaner and more informative user experience.
 
 ### Changed
 
