@@ -7,13 +7,19 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-var db *bolt.DB
+type Store struct {
+	db *bolt.DB
+}
 
-func OpenDB(cfgDir string) error {
-	var err error
-	db, err = bolt.Open(path.Join(cfgDir, ".tracks.db"), 0600, nil)
+func Open(dir string) (*Store, error) {
+	db, err := bolt.Open(path.Join(dir, ".tracks.db"), 0600, nil)
 	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
-	return nil
+
+	return &Store{db: db}, nil
+}
+
+func (s *Store) Close() error {
+	return s.db.Close()
 }

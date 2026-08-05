@@ -18,10 +18,10 @@ type DownloadInfo struct {
 
 var trackBucket = []byte("tracks")
 
-func GetDownloadInfo(trackID string) (*DownloadInfo, error) {
+func (s *Store) DownloadInfo(trackID string) (*DownloadInfo, error) {
 	var info DownloadInfo
 
-	if err := db.View(func(tx *bbolt.Tx) error {
+	if err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(trackBucket)
 		if b == nil {
 			return fmt.Errorf("bucket not found")
@@ -39,8 +39,8 @@ func GetDownloadInfo(trackID string) (*DownloadInfo, error) {
 	return &info, nil
 }
 
-func (d *DownloadInfo) Save() error {
-	return db.Update(func(tx *bbolt.Tx) error {
+func (s *Store) PutDownloadInfo(d *DownloadInfo) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(trackBucket)
 		if err != nil {
 			return fmt.Errorf("failed to create bucket: %w", err)

@@ -4,11 +4,10 @@ import (
 	"context"
 
 	"github.com/mathismqn/godeez/internal/fileutil"
-	"github.com/mathismqn/godeez/internal/store"
 )
 
 func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
-	existing, err := store.GetDownloadInfo(trackID)
+	existing, err := c.store.DownloadInfo(trackID)
 	if err != nil || existing.Quality != mediaFormat {
 		return "", false
 	}
@@ -31,7 +30,7 @@ func (c *Client) shouldSkipDownload(ctx context.Context, trackID, mediaFormat st
 	}
 
 	existing.Path = foundPath
-	_ = existing.Save()
+	_ = c.store.PutDownloadInfo(existing)
 
 	return foundPath, true
 }

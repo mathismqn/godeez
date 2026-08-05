@@ -10,12 +10,9 @@ import (
 	"github.com/mathismqn/godeez/internal/config"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/downloader"
+	"github.com/mathismqn/godeez/internal/store"
 	"github.com/spf13/cobra"
 )
-
-type contextKey string
-
-const appConfigKey contextKey = "appConfig"
 
 var opts downloader.Options
 
@@ -48,19 +45,23 @@ func newDownloadCmd(kind deezer.Kind) *cobra.Command {
 		Short: downloadShort(kind),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			appConfig, err := config.New()
-			if err != nil {
-				return err
-			}
-			cmd.SetContext(context.WithValue(cmd.Context(), appConfigKey, appConfig))
-
 			opts.Quality = strings.ToLower(opts.Quality)
 			return opts.Validate()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			appConfig := cmd.Context().Value(appConfigKey).(*config.Config)
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+			config.MigrateLegacy(cfg.OutputDir)
 
-			err := downloader.New(appConfig, kind).Run(cmd.Context(), opts, args[0])
+			st, err := store.Open(cfg.OutputDir)
+			if err != nil {
+				return err
+			}
+			defer st.Close()
+
+			err = downloader.New(cfg, st, kind).Run(cmd.Context(), opts, args[0])
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}

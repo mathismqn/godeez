@@ -23,6 +23,7 @@ const chunkSize = 2048
 
 type Client struct {
 	appConfig    *config.Config
+	store        *store.Store
 	kind         deezer.Kind
 	deezerClient *deezer.Client
 
@@ -31,9 +32,10 @@ type Client struct {
 	hashIndexErr  error
 }
 
-func New(appConfig *config.Config, kind deezer.Kind) *Client {
+func New(appConfig *config.Config, st *store.Store, kind deezer.Kind) *Client {
 	return &Client{
 		appConfig: appConfig,
+		store:     st,
 		kind:      kind,
 	}
 }
@@ -249,7 +251,7 @@ func (c *Client) finalizeDownload(resource deezer.Resource, track *deezer.Track,
 		Downloaded: time.Now(),
 	}
 
-	if err := info.Save(); err != nil {
+	if err := c.store.PutDownloadInfo(info); err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to save download info: %v", err))
 	}
 
