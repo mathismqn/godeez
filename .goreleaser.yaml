@@ -39,9 +39,5 @@ checksum:
 snapshot:
   version_template: '{{ incpatch .Version }}-snapshot'
 
-# Release notes are written by hand in CHANGELOG.md
-changelog:
-  disable: true
-
 release:
   prerelease: auto
