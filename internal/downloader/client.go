@@ -16,7 +16,7 @@ import (
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
 	"github.com/mathismqn/godeez/internal/store"
-	"github.com/mathismqn/godeez/internal/tags"
+	"github.com/mathismqn/godeez/internal/tag"
 )
 
 const chunkSize = 2048
@@ -234,7 +234,7 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 func (c *Client) finalizeDownload(resource deezer.Resource, track *deezer.Track, outputPath, mediaFormat, genre string, cover []byte, bpmKey bpmKey) []string {
 	var warnings []string
 
-	if err := tags.AddTags(resource, track, cover, outputPath, bpmKey.BPM, bpmKey.Key, genre); err != nil {
+	if err := tag.Write(outputPath, buildTagMetadata(resource, track, cover, bpmKey, genre)); err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 
