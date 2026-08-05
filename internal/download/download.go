@@ -52,7 +52,7 @@ func (d *Downloader) initDeezerClient(ctx context.Context, opts Options) error {
 		return err
 	}
 
-	if !d.deezerClient.Session.Premium && (opts.Quality == "mp3_320" || opts.Quality == "flac") {
+	if !d.deezerClient.Session.Premium && opts.sourceQuality() != "mp3_128" {
 		return fmt.Errorf("premium account required for '%s' quality", opts.Quality)
 	}
 
