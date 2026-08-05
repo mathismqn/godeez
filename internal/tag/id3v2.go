@@ -1,7 +1,6 @@
 package tag
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -37,7 +36,7 @@ func (t *id3v2Tagger) write(m Metadata) error {
 	t.addTag("TEXT", m.Lyricists)
 	t.addTag("TCON", m.Genre)
 	if duration, err := strconv.Atoi(m.Duration); err == nil {
-		t.addTag("TLEN", fmt.Sprintf("%d", duration*1000))
+		t.addTag("TLEN", strconv.Itoa(duration*1000))
 	}
 	t.addTag("TBPM", m.BPM)
 	t.addTag("TKEY", m.Key)

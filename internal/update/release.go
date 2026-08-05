@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -46,7 +47,7 @@ func (u *Updater) Latest(ctx context.Context) (*Release, error) {
 		return nil, fmt.Errorf("failed to decode release: %w", err)
 	}
 	if release.TagName == "" {
-		return nil, fmt.Errorf("release has no tag name")
+		return nil, errors.New("release has no tag name")
 	}
 
 	return &release, nil

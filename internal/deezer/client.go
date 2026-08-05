@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,7 +63,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 		return nil, err
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"nb":     10000,
 		"start":  0,
 		"lang":   "en",
@@ -78,7 +79,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	}
 
 	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", kind.pageMethod(), c.Session.APIToken)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
@@ -109,12 +110,12 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 		{`"DATA_ERROR":"song::getData"`, "invalid track ID"},
 	} {
 		if strings.Contains(bodyStr, check.marker) {
-			return nil, fmt.Errorf("%s", check.errMsg)
+			return nil, errors.New(check.errMsg)
 		}
 	}
 
 	if strings.Contains(bodyStr, `"results":{}`) {
-		return nil, fmt.Errorf("unexpected response")
+		return nil, errors.New("unexpected response")
 	}
 
 	if err := resource.decode(body); err != nil {
@@ -132,7 +133,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 	}
 
 	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.LicenseToken, qualityFormats[quality], track.TrackToken)
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
 	}
@@ -159,20 +160,20 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 
 	if len(media.Errors) > 0 {
 		if media.Errors[0].Code == 1000 {
-			return nil, fmt.Errorf("invalid license token")
+			return nil, errors.New("invalid license token")
 		}
-		return nil, fmt.Errorf("%s", media.Errors[0].Message)
+		return nil, errors.New(media.Errors[0].Message)
 	}
 
 	if len(media.Data) > 0 && len(media.Data[0].Errors) > 0 {
 		if media.Data[0].Errors[0].Code == 2002 {
-			return nil, fmt.Errorf("invalid track token")
+			return nil, errors.New("invalid track token")
 		}
-		return nil, fmt.Errorf("%s", media.Data[0].Errors[0].Message)
+		return nil, errors.New(media.Data[0].Errors[0].Message)
 	}
 
 	if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
-		return nil, fmt.Errorf("no sources found")
+		return nil, errors.New("no sources found")
 	}
 
 	return &media, nil
@@ -180,7 +181,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 
 func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, error) {
 	url := fmt.Sprintf("https://e-cdn-images.dzcdn.net/images/cover/%s/500x500-000000-80-0-0.jpg", track.Cover)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +200,7 @@ func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, err
 }
 
 func (c *Client) MediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", media.URL(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, media.URL(), nil)
 	if err != nil {
 		return nil, err
 	}

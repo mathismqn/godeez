@@ -2,6 +2,7 @@ package store
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,12 +25,12 @@ func (s *Store) DownloadInfo(trackID string) (*DownloadInfo, error) {
 	if err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket(trackBucket)
 		if b == nil {
-			return fmt.Errorf("bucket not found")
+			return errors.New("bucket not found")
 		}
 
 		data := b.Get([]byte(trackID))
 		if data == nil {
-			return fmt.Errorf("not found")
+			return errors.New("not found")
 		}
 		return json.Unmarshal(data, &info)
 	}); err != nil {

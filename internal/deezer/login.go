@@ -32,7 +32,7 @@ func resolveARL(ctx context.Context, validate func(ctx context.Context, arl stri
 		return arl, nil
 	}
 
-	return "", fmt.Errorf("run 'godeez login' or export DEEZER_ARL environment variable")
+	return "", errors.New("run 'godeez login' or export DEEZER_ARL environment variable")
 }
 
 func Login(ctx context.Context, email, password string) (string, string, error) {

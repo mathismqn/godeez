@@ -2,6 +2,7 @@ package download
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -50,14 +51,14 @@ func fetchGenre(ctx context.Context, httpClient *http.Client, artist, title stri
 
 	filtered := filterTags(tags)
 	if len(filtered) == 0 {
-		return "", fmt.Errorf("no data found")
+		return "", errors.New("no data found")
 	}
 
 	return formatTags(filtered), nil
 }
 
 func fetchGenrePage(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package download
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,14 +28,14 @@ func (o *Options) Validate(kind deezer.Kind) error {
 		return fmt.Errorf("invalid quality option: %s", o.Quality)
 	}
 	if o.Timeout <= 0 {
-		return fmt.Errorf("timeout must be a positive duration")
+		return errors.New("timeout must be a positive duration")
 	}
 	if kind == deezer.KindArtist {
 		if o.Limit <= 0 {
-			return fmt.Errorf("limit must be a positive integer")
+			return errors.New("limit must be a positive integer")
 		}
 		if o.Limit > 100 {
-			return fmt.Errorf("limit must not exceed 100")
+			return errors.New("limit must not exceed 100")
 		}
 	}
 

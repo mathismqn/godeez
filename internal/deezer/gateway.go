@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand/v2"
@@ -47,7 +48,7 @@ func gatewayEnv() (string, string, error) {
 	apiKey := os.Getenv("DEEZER_MOBILE_API_KEY")
 	gwKey := os.Getenv("DEEZER_MOBILE_GW_KEY")
 	if apiKey == "" || gwKey == "" {
-		return "", "", fmt.Errorf("DEEZER_MOBILE_API_KEY and DEEZER_MOBILE_GW_KEY must be set to use email/password login")
+		return "", "", errors.New("DEEZER_MOBILE_API_KEY and DEEZER_MOBILE_GW_KEY must be set to use email/password login")
 	}
 
 	if len(gwKey) != aes.BlockSize {
@@ -89,7 +90,7 @@ func (m *mobileClient) login(ctx context.Context, email, password string) (*Cred
 }
 
 func (m *mobileClient) authenticate(ctx context.Context) (string, string, string, error) {
-	body, err := m.gatewayRequest(ctx, "mobile_auth", "GET", "uniq_id", genUniqID(), nil)
+	body, err := m.gatewayRequest(ctx, "mobile_auth", http.MethodGet, "uniq_id", genUniqID(), nil)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -104,10 +105,10 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 	}
 
 	if strings.Contains(string(body), "Undefined or invalid API key") {
-		return "", "", "", fmt.Errorf("DEEZER_MOBILE_API_KEY is invalid")
+		return "", "", "", errors.New("DEEZER_MOBILE_API_KEY is invalid")
 	}
 	if strings.Contains(string(body), "GATEWAY_ERROR") || res.Results.Token == "" {
-		return "", "", "", fmt.Errorf("unexpected response from gateway")
+		return "", "", "", errors.New("unexpected response from gateway")
 	}
 
 	encrypted, err := hex.DecodeString(res.Results.Token)
@@ -121,7 +122,7 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 	}
 
 	if len(decrypted) < 96 {
-		return "", "", "", fmt.Errorf("unexpected response from gateway")
+		return "", "", "", errors.New("unexpected response from gateway")
 	}
 
 	token := string(decrypted[0:64])
@@ -138,7 +139,7 @@ func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) e
 	}
 	authToken := hex.EncodeToString(encrypted)
 
-	body, err := m.gatewayRequest(ctx, "api_checkToken", "GET", "auth_token", authToken, nil)
+	body, err := m.gatewayRequest(ctx, "api_checkToken", http.MethodGet, "auth_token", authToken, nil)
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) e
 		return err
 	}
 	if res.Results == "" {
-		return fmt.Errorf("unexpected response from gateway")
+		return errors.New("unexpected response from gateway")
 	}
 	m.sid = res.Results
 
@@ -183,13 +184,13 @@ func (m *mobileClient) userAuth(ctx context.Context, email, password, userKey st
 		return "", "", err
 	}
 
-	body, err := m.gatewayRequest(ctx, "mobile_userAuth", "POST", "", "", jsonBody)
+	body, err := m.gatewayRequest(ctx, "mobile_userAuth", http.MethodPost, "", "", jsonBody)
 	if err != nil {
 		return "", "", err
 	}
 
 	if strings.Contains(string(body), "USER_AUTH_ERROR") {
-		return "", "", fmt.Errorf("invalid email or password")
+		return "", "", errors.New("invalid email or password")
 	}
 
 	var res struct {
@@ -204,7 +205,7 @@ func (m *mobileClient) userAuth(ctx context.Context, email, password, userKey st
 	}
 
 	if res.Results.ARL == "" || res.Results.UserID == 0 {
-		return "", "", fmt.Errorf("unexpected response from gateway")
+		return "", "", errors.New("unexpected response from gateway")
 	}
 
 	return res.Results.ARL, res.Results.BlogName, nil
@@ -220,7 +221,7 @@ func (m *mobileClient) gatewayRequest(ctx context.Context, method, httpMethod, p
 	q.Set("method", method)
 	q.Set("api_key", m.apiKey)
 	q.Set("output", "3")
-	if httpMethod == "POST" {
+	if httpMethod == http.MethodPost {
 		q.Set("input", "3")
 	}
 	if m.sid != "" {

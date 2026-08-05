@@ -3,6 +3,7 @@ package download
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +41,7 @@ func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, d
 	values := neturl.Values{}
 	values.Add("query", fmt.Sprintf("%s %s", artist, title))
 
-	req, err := http.NewRequestWithContext(ctx, "POST", rootURL+"/searches", bytes.NewBufferString(values.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rootURL+"/searches", bytes.NewBufferString(values.Encode()))
 	if err != nil {
 		return "", err
 	}
@@ -102,14 +103,14 @@ func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, d
 	})
 
 	if matchURL == "" {
-		return "", fmt.Errorf("no data found")
+		return "", errors.New("no data found")
 	}
 
 	return rootURL + matchURL, nil
 }
 
 func fetchBPMPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +139,7 @@ func parseBPM(html string) (bpmKey, error) {
 	modeMatch := modeRegex.FindStringSubmatch(html)
 
 	if len(bpmMatch) != 2 || len(keyMatch) != 2 || len(modeMatch) != 2 {
-		return bpmKey{}, fmt.Errorf("no data found")
+		return bpmKey{}, errors.New("no data found")
 	}
 
 	bpm := bpmMatch[1]
