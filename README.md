@@ -19,7 +19,7 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 ## Features
 
 - Download playlists, albums, artists' top tracks, and individual tracks
-- Choose audio quality: MP3 128 kbps, MP3 320 kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128 kbps)
+- Choose audio quality: MP3 128 kbps, MP3 320 kbps (default), or lossless FLAC/WAV (⚠️ non-premium accounts are limited to 128 kbps)
 - Authenticate with an ARL cookie or with your Deezer email and password
 - Automatically embed metadata tags (artist, album, title, artwork, etc.)
 - Fetch and tag tracks with BPM, musical key, and genre
@@ -191,7 +191,7 @@ Flags:
       --bpm                fetch BPM/key and add to file tags
       --genre              fetch genre and add to file tags
   -h, --help               help for download
-  -q, --quality string     download quality [mp3_128, mp3_320, flac] (default "mp3_320")
+  -q, --quality string     download quality [mp3_128, mp3_320, flac, wav] (default "mp3_320")
       --strict             fail the download if the requested quality is unavailable
   -t, --timeout duration   timeout for each download (e.g. 10s, 1m, 2m30s) (default 2m0s)
 
