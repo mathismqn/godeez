@@ -28,8 +28,6 @@ func newDownloadCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&opts.Genre, "genre", false, "fetch genre and add to file tags")
 	cmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the download if the requested quality is unavailable")
 
-	// Every subcommand shares opts: registering the artist-only --limit flag
-	// stores its default in the shared struct, which Validate requires for all kinds.
 	cmd.AddCommand(
 		newDownloadSubCmd(deezer.KindAlbum, opts),
 		newDownloadSubCmd(deezer.KindPlaylist, opts),
@@ -47,7 +45,7 @@ func newDownloadSubCmd(kind deezer.Kind, opts *download.Options) *cobra.Command 
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.Quality = strings.ToLower(opts.Quality)
-			return opts.Validate()
+			return opts.Validate(kind)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.Load()

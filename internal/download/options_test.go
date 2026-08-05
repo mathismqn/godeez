@@ -3,6 +3,8 @@ package download
 import (
 	"testing"
 	"time"
+
+	"github.com/mathismqn/godeez/internal/deezer"
 )
 
 func TestOptionsValidate(t *testing.T) {
@@ -11,18 +13,21 @@ func TestOptionsValidate(t *testing.T) {
 	tests := []struct {
 		name    string
 		mutate  func(o *Options)
+		kind    deezer.Kind
 		wantErr bool
 	}{
-		{"valid", func(o *Options) {}, false},
-		{"mp3_128", func(o *Options) { o.Quality = "mp3_128" }, false},
-		{"flac", func(o *Options) { o.Quality = "flac" }, false},
-		{"invalid quality", func(o *Options) { o.Quality = "ogg" }, true},
-		{"uppercase quality", func(o *Options) { o.Quality = "MP3_320" }, true},
-		{"zero timeout", func(o *Options) { o.Timeout = 0 }, true},
-		{"negative timeout", func(o *Options) { o.Timeout = -time.Second }, true},
-		{"zero limit", func(o *Options) { o.Limit = 0 }, true},
-		{"limit too high", func(o *Options) { o.Limit = 101 }, true},
-		{"limit at max", func(o *Options) { o.Limit = 100 }, false},
+		{"valid", func(o *Options) {}, deezer.KindAlbum, false},
+		{"mp3_128", func(o *Options) { o.Quality = "mp3_128" }, deezer.KindAlbum, false},
+		{"flac", func(o *Options) { o.Quality = "flac" }, deezer.KindAlbum, false},
+		{"invalid quality", func(o *Options) { o.Quality = "ogg" }, deezer.KindAlbum, true},
+		{"uppercase quality", func(o *Options) { o.Quality = "MP3_320" }, deezer.KindAlbum, true},
+		{"zero timeout", func(o *Options) { o.Timeout = 0 }, deezer.KindAlbum, true},
+		{"negative timeout", func(o *Options) { o.Timeout = -time.Second }, deezer.KindAlbum, true},
+		{"artist zero limit", func(o *Options) { o.Limit = 0 }, deezer.KindArtist, true},
+		{"artist limit too high", func(o *Options) { o.Limit = 101 }, deezer.KindArtist, true},
+		{"artist limit at max", func(o *Options) { o.Limit = 100 }, deezer.KindArtist, false},
+		{"album ignores zero limit", func(o *Options) { o.Limit = 0 }, deezer.KindAlbum, false},
+		{"track ignores zero limit", func(o *Options) { o.Limit = 0 }, deezer.KindTrack, false},
 	}
 
 	for _, tt := range tests {
@@ -30,9 +35,9 @@ func TestOptionsValidate(t *testing.T) {
 			opts := valid
 			tt.mutate(&opts)
 
-			err := opts.Validate()
+			err := opts.Validate(tt.kind)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Validate(%s) error = %v, wantErr %v", tt.kind, err, tt.wantErr)
 			}
 		})
 	}

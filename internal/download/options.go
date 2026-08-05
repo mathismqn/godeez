@@ -3,6 +3,8 @@ package download
 import (
 	"fmt"
 	"time"
+
+	"github.com/mathismqn/godeez/internal/deezer"
 )
 
 var validQualities = map[string]bool{
@@ -20,18 +22,20 @@ type Options struct {
 	Strict  bool
 }
 
-func (o *Options) Validate() error {
+func (o *Options) Validate(kind deezer.Kind) error {
 	if !validQualities[o.Quality] {
 		return fmt.Errorf("invalid quality option: %s", o.Quality)
 	}
 	if o.Timeout <= 0 {
 		return fmt.Errorf("timeout must be a positive duration")
 	}
-	if o.Limit <= 0 {
-		return fmt.Errorf("limit must be a positive integer")
-	}
-	if o.Limit > 100 {
-		return fmt.Errorf("limit must not exceed 100")
+	if kind == deezer.KindArtist {
+		if o.Limit <= 0 {
+			return fmt.Errorf("limit must be a positive integer")
+		}
+		if o.Limit > 100 {
+			return fmt.Errorf("limit must not exceed 100")
+		}
 	}
 
 	return nil
