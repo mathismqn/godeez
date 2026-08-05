@@ -2,11 +2,7 @@ package deezer
 
 import (
 	"encoding/json"
-	"fmt"
 	"path"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/flytam/filenamify"
 )
@@ -20,35 +16,6 @@ type Artist struct {
 			Data []*Track `json:"data"`
 		} `json:"TOP"`
 	} `json:"results"`
-}
-
-func (a *Artist) String() string {
-	tracks := a.Results.Tracks.Data
-	count := len(tracks)
-
-	totalSec := 0
-	for _, t := range tracks {
-		if d, err := strconv.Atoi(t.Duration); err == nil {
-			totalSec += d
-		}
-	}
-
-	limit := min(3, count)
-
-	var b strings.Builder
-	fmt.Fprintf(&b, "============= [ Artist Info ] =============\n")
-	fmt.Fprintf(&b, "Artist:   %s\n", a.Results.Data.Name)
-	fmt.Fprintf(&b, "Tracks:   %d\n", count)
-	fmt.Fprintf(&b, "Playtime: %s\n", time.Duration(totalSec)*time.Second)
-	fmt.Fprintf(&b, "-------------------------------------------\n")
-	fmt.Fprintf(&b, "Top %d most popular tracks:\n", limit)
-	for i := 0; i < limit; i++ {
-		t := tracks[i]
-		fmt.Fprintf(&b, "    %2d. %s – %s\n", i+1, t.Artist, t.GetTitle())
-	}
-	fmt.Fprintf(&b, "===========================================\n")
-
-	return b.String()
 }
 
 func (a *Artist) GetTitle() string {

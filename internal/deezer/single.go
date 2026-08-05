@@ -2,38 +2,13 @@ package deezer
 
 import (
 	"encoding/json"
-	"fmt"
 	"path"
-	"strconv"
-	"time"
 )
 
 type Single struct {
 	Results struct {
 		Data *Track `json:"DATA"`
 	} `json:"results"`
-}
-
-func (s *Single) String() string {
-	if s.Results.Data == nil {
-		return "Track: No data available"
-	}
-
-	duration, err := strconv.Atoi(s.Results.Data.Duration)
-	if err != nil {
-		duration = 0
-	}
-
-	return fmt.Sprintf(
-		`================= [ Track Info ] =================
-Title:    %s
-Artist:   %s
-Duration: %s
-==================================================`,
-		s.Results.Data.GetTitle(),
-		s.Results.Data.Artist,
-		time.Duration(duration)*time.Second,
-	)
 }
 
 func (s *Single) GetTitle() string {

@@ -97,7 +97,7 @@ func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource
 	startTime := time.Now()
 
 	if c.kind != deezer.KindTrack {
-		fmt.Printf("%s\n\nStarting download...\n\n", resource)
+		fmt.Printf("%s\n\nStarting download...\n\n", resourceInfo(resource))
 	}
 
 	progress := newProgressTracker(len(tracks), c.kind)
