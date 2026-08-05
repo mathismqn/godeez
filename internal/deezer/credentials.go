@@ -1,4 +1,4 @@
-package auth
+package deezer
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ type Credentials struct {
 	ARL      string `json:"arl,omitempty"`
 }
 
-func Load() (*Credentials, error) {
+func LoadCredentials() (*Credentials, error) {
 	secret, err := keyring.Get(keyringService, keyringUser)
 	if err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {
@@ -36,7 +36,7 @@ func Load() (*Credentials, error) {
 	return &creds, nil
 }
 
-func Save(creds *Credentials) error {
+func SaveCredentials(creds *Credentials) error {
 	data, err := json.Marshal(creds)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func Save(creds *Credentials) error {
 	return nil
 }
 
-func Clear() error {
+func ClearCredentials() error {
 	if err := keyring.Delete(keyringService, keyringUser); err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {
 			return nil

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/mathismqn/godeez/internal/config"
-	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
 	"github.com/mathismqn/godeez/internal/store"
@@ -55,7 +54,7 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 
 func (c *Client) initDeezerClient(ctx context.Context, opts Options) error {
 	var err error
-	c.deezerClient, err = deezer.NewClient(ctx, c.appConfig)
+	c.deezerClient, err = deezer.NewClient(ctx, c.appConfig.ARLCookie)
 	if err != nil {
 		return err
 	}
@@ -155,7 +154,7 @@ func (c *Client) downloadTrack(ctx context.Context, resource deezer.Resource, tr
 	fileName := track.Filename(c.kind, mediaFormat)
 	outputPath := path.Join(outputDir, fileName)
 
-	key := crypto.GetBlowfishKey(track.ID)
+	key := deezer.BlowfishKey(track.ID)
 	if err := c.streamToFile(dlCtx, stream, outputPath, key); err != nil {
 		fileutil.DeleteFile(outputPath)
 		return downloadResult{err: fmt.Errorf("failed to stream to file: %w", err)}
@@ -213,7 +212,7 @@ func (c *Client) streamToFile(ctx context.Context, stream io.ReadCloser, outputP
 		}
 
 		if chunk%3 == 0 && totalRead == chunkSize {
-			buffer, err = crypto.DecryptBlowfish(buffer, key)
+			buffer, err = deezer.DecryptBlowfish(buffer, key)
 			if err != nil {
 				return err
 			}

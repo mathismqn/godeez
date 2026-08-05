@@ -8,17 +8,14 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/mathismqn/godeez/internal/auth"
-	"github.com/mathismqn/godeez/internal/config"
 )
 
 type Client struct {
 	Session *Session
 }
 
-func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
-	session, err := resolveSession(ctx, appConfig)
+func NewClient(ctx context.Context, arlCookie string) (*Client, error) {
+	session, err := resolveSession(ctx, arlCookie)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate: %w", err)
 	}
@@ -28,14 +25,14 @@ func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
 	}, nil
 }
 
-func resolveSession(ctx context.Context, appConfig *config.Config) (*Session, error) {
-	if appConfig.ARLCookie != "" {
-		return Authenticate(ctx, appConfig.ARLCookie)
+func resolveSession(ctx context.Context, arlCookie string) (*Session, error) {
+	if arlCookie != "" {
+		return authenticate(ctx, arlCookie)
 	}
 
 	var session *Session
 	validate := func(ctx context.Context, arl string) error {
-		s, err := Authenticate(ctx, arl)
+		s, err := authenticate(ctx, arl)
 		if err != nil {
 			return err
 		}
@@ -44,13 +41,13 @@ func resolveSession(ctx context.Context, appConfig *config.Config) (*Session, er
 		return nil
 	}
 
-	arl, err := auth.Resolve(ctx, validate)
+	arl, err := resolveARL(ctx, validate)
 	if err != nil {
 		return nil, err
 	}
 
 	if session == nil {
-		session, err = Authenticate(ctx, arl)
+		session, err = authenticate(ctx, arl)
 		if err != nil {
 			return nil, err
 		}

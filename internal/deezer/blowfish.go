@@ -1,4 +1,4 @@
-package crypto
+package deezer
 
 import (
 	"crypto/cipher"
@@ -13,7 +13,7 @@ var (
 	blowfishSecretKey = []byte("g4el58wc0zvf9na1")
 )
 
-func GetBlowfishKey(trackID string) []byte {
+func BlowfishKey(trackID string) []byte {
 	hash := md5.Sum([]byte(trackID))
 	hashHex := hex.EncodeToString(hash[:])
 

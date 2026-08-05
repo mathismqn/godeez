@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
-	"github.com/mathismqn/godeez/internal/auth"
+	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 func newLoginCmd() *cobra.Command {
@@ -13,16 +17,16 @@ func newLoginCmd() *cobra.Command {
 		Short: "Log in to Deezer with your email and password",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := auth.CheckGatewayEnv(); err != nil {
+			if err := deezer.CheckGatewayEnv(); err != nil {
 				return err
 			}
 
-			email, password, err := auth.PromptCredentials()
+			email, password, err := promptCredentials()
 			if err != nil {
 				return err
 			}
 
-			_, username, err := auth.Login(cmd.Context(), email, password)
+			_, username, err := deezer.Login(cmd.Context(), email, password)
 			if err != nil {
 				return err
 			}
@@ -32,4 +36,22 @@ func newLoginCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func promptCredentials() (string, string, error) {
+	fmt.Print("Email: ")
+	line, err := bufio.NewReader(os.Stdin).ReadString('\n')
+	if err != nil {
+		return "", "", err
+	}
+	email := strings.TrimSpace(line)
+
+	fmt.Print("Password: ")
+	passwordBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println()
+	if err != nil {
+		return "", "", err
+	}
+
+	return email, string(passwordBytes), nil
 }

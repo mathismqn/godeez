@@ -1,4 +1,4 @@
-package crypto
+package deezer
 
 import (
 	"crypto/aes"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func ZeroPad(data []byte) []byte {
+func zeroPad(data []byte) []byte {
 	bs := aes.BlockSize
 	padded := make([]byte, len(data)+(bs-len(data)%bs)%bs)
 	copy(padded, data)
@@ -14,11 +14,11 @@ func ZeroPad(data []byte) []byte {
 	return padded
 }
 
-func EncryptECB(key, data []byte) ([]byte, error) {
+func ecbEncrypt(key, data []byte) ([]byte, error) {
 	return ecbTransform(key, data, (cipher.Block).Encrypt)
 }
 
-func DecryptECB(key, data []byte) ([]byte, error) {
+func ecbDecrypt(key, data []byte) ([]byte, error) {
 	return ecbTransform(key, data, (cipher.Block).Decrypt)
 }
 

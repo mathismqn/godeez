@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mathismqn/godeez/internal/auth"
+	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ func newLogoutCmd() *cobra.Command {
 		Short: "Remove stored Deezer credentials",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := auth.Clear(); err != nil {
+			if err := deezer.ClearCredentials(); err != nil {
 				return err
 			}
 

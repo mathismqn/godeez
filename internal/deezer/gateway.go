@@ -1,4 +1,4 @@
-package auth
+package deezer
 
 import (
 	"bytes"
@@ -14,8 +14,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/mathismqn/godeez/internal/crypto"
 )
 
 const (
@@ -72,7 +70,7 @@ func newMobileClient() (*mobileClient, error) {
 	}, nil
 }
 
-func (m *mobileClient) Login(ctx context.Context, email, password string) (*Credentials, string, error) {
+func (m *mobileClient) login(ctx context.Context, email, password string) (*Credentials, string, error) {
 	token, tokenKey, userKey, err := m.authenticate(ctx)
 	if err != nil {
 		return nil, "", err
@@ -117,7 +115,7 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 		return "", "", "", err
 	}
 
-	decrypted, err := crypto.DecryptECB(m.gwKey, encrypted)
+	decrypted, err := ecbDecrypt(m.gwKey, encrypted)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -130,7 +128,7 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 }
 
 func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) error {
-	encrypted, err := crypto.EncryptECB([]byte(tokenKey), []byte(token))
+	encrypted, err := ecbEncrypt([]byte(tokenKey), []byte(token))
 	if err != nil {
 		return err
 	}
@@ -156,7 +154,7 @@ func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) e
 }
 
 func (m *mobileClient) userAuth(ctx context.Context, email, password, userKey string) (string, string, error) {
-	encryptedPassword, err := crypto.EncryptECB([]byte(userKey), crypto.ZeroPad([]byte(password)))
+	encryptedPassword, err := ecbEncrypt([]byte(userKey), zeroPad([]byte(password)))
 	if err != nil {
 		return "", "", err
 	}

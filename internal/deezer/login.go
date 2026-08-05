@@ -1,12 +1,12 @@
-package auth
+package deezer
 
 import (
 	"context"
 	"fmt"
 )
 
-func Resolve(ctx context.Context, validate func(ctx context.Context, arl string) error) (string, error) {
-	creds, err := Load()
+func resolveARL(ctx context.Context, validate func(ctx context.Context, arl string) error) (string, error) {
+	creds, err := LoadCredentials()
 	if err != nil {
 		return "", err
 	}
@@ -35,12 +35,12 @@ func Login(ctx context.Context, email, password string) (string, string, error) 
 		return "", "", err
 	}
 
-	creds, username, err := client.Login(ctx, email, password)
+	creds, username, err := client.login(ctx, email, password)
 	if err != nil {
 		return "", "", err
 	}
 
-	if err := Save(creds); err != nil {
+	if err := SaveCredentials(creds); err != nil {
 		return "", "", err
 	}
 
