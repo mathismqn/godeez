@@ -14,32 +14,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var opts downloader.Options
+func newDownloadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:         "download",
+		Short:       "Download tracks from Deezer",
+		Annotations: map[string]string{updateNoticeAnnotation: "true"},
+	}
 
-var downloadCmd = &cobra.Command{
-	Use:         "download",
-	Short:       "Download tracks from Deezer",
-	Annotations: map[string]string{updateNoticeAnnotation: "true"},
-}
+	opts := &downloader.Options{}
+	cmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "mp3_320", "download quality [mp3_128, mp3_320, flac]")
+	cmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
+	cmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
+	cmd.PersistentFlags().BoolVar(&opts.Genre, "genre", false, "fetch genre and add to file tags")
+	cmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the download if the requested quality is unavailable")
 
-func init() {
-	RootCmd.AddCommand(downloadCmd)
-
-	downloadCmd.PersistentFlags().StringVarP(&opts.Quality, "quality", "q", "mp3_320", "download quality [mp3_128, mp3_320, flac]")
-	downloadCmd.PersistentFlags().DurationVarP(&opts.Timeout, "timeout", "t", 2*time.Minute, "timeout for each download (e.g. 10s, 1m, 2m30s)")
-	downloadCmd.PersistentFlags().BoolVar(&opts.BPM, "bpm", false, "fetch BPM/key and add to file tags")
-	downloadCmd.PersistentFlags().BoolVar(&opts.Genre, "genre", false, "fetch genre and add to file tags")
-	downloadCmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the download if the requested quality is unavailable")
-
-	downloadCmd.AddCommand(
-		newDownloadCmd(deezer.KindAlbum),
-		newDownloadCmd(deezer.KindPlaylist),
-		newDownloadCmd(deezer.KindArtist),
-		newDownloadCmd(deezer.KindTrack),
+	// Every subcommand shares opts: registering the artist-only --limit flag
+	// stores its default in the shared struct, which Validate requires for all kinds.
+	cmd.AddCommand(
+		newDownloadSubCmd(deezer.KindAlbum, opts),
+		newDownloadSubCmd(deezer.KindPlaylist, opts),
+		newDownloadSubCmd(deezer.KindArtist, opts),
+		newDownloadSubCmd(deezer.KindTrack, opts),
 	)
+
+	return cmd
 }
 
-func newDownloadCmd(kind deezer.Kind) *cobra.Command {
+func newDownloadSubCmd(kind deezer.Kind, opts *downloader.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <%s_id>", kind, kind),
 		Short: downloadShort(kind),
@@ -61,7 +62,7 @@ func newDownloadCmd(kind deezer.Kind) *cobra.Command {
 			}
 			defer st.Close()
 
-			err = downloader.New(cfg, st, kind).Run(cmd.Context(), opts, args[0])
+			err = downloader.New(cfg, st, kind).Run(cmd.Context(), *opts, args[0])
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}

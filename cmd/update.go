@@ -11,26 +11,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var updateOpts struct {
+type updateOptions struct {
 	checkOnly bool
 	force     bool
 }
 
-var updateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "Update GoDeez to the latest version",
-	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := runUpdate(cmd.Context())
-		if errors.Is(err, context.Canceled) {
-			return nil
-		}
+func newUpdateCmd() *cobra.Command {
+	opts := &updateOptions{}
+	cmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update GoDeez to the latest version",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := runUpdate(cmd.Context(), opts)
+			if errors.Is(err, context.Canceled) {
+				return nil
+			}
 
-		return err
-	},
+			return err
+		},
+	}
+
+	cmd.Flags().BoolVar(&opts.checkOnly, "check", false, "only report whether an update is available")
+	cmd.Flags().BoolVar(&opts.force, "force", false, "reinstall even if already up to date")
+
+	return cmd
 }
 
-func runUpdate(ctx context.Context) error {
+func runUpdate(ctx context.Context, opts *updateOptions) error {
 	if err := updater.CheckUpdatable(); err != nil {
 		return err
 	}
@@ -47,13 +55,13 @@ func runUpdate(ctx context.Context) error {
 	latest := release.Version()
 	fmt.Printf("Current: %s\nLatest:  %s\n", current, latest)
 
-	if !updater.IsNewer(current, latest) && !updateOpts.force {
+	if !updater.IsNewer(current, latest) && !opts.force {
 		fmt.Println("Already up to date.")
 
 		return nil
 	}
 
-	if updateOpts.checkOnly {
+	if opts.checkOnly {
 		fmt.Printf("Run `godeez update` to install %s.\n", latest)
 
 		return nil
@@ -65,11 +73,4 @@ func runUpdate(ctx context.Context) error {
 	fmt.Printf("Updated to %s.\n", latest)
 
 	return nil
-}
-
-func init() {
-	RootCmd.AddCommand(updateCmd)
-
-	updateCmd.Flags().BoolVar(&updateOpts.checkOnly, "check", false, "only report whether an update is available")
-	updateCmd.Flags().BoolVar(&updateOpts.force, "force", false, "reinstall even if already up to date")
 }

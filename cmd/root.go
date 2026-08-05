@@ -14,26 +14,40 @@ import (
 
 const updateNoticeAnnotation = "godeez:update-notice"
 
-var RootCmd = &cobra.Command{
-	Use:          "godeez",
-	Short:        "GoDeez is a tool to download music from Deezer",
-	SilenceUsage: true,
-}
-
 func Execute(ctx context.Context) error {
+	root := NewRootCmd()
+
 	var notice <-chan string
-	if wantsUpdateNotice() {
+	if wantsUpdateNotice(root) {
 		notice = updater.StartCheck(ctx)
 	}
 
-	err := RootCmd.ExecuteContext(ctx)
+	err := root.ExecuteContext(ctx)
 
 	printUpdateNotice(notice)
 
 	return err
 }
 
-func wantsUpdateNotice() bool {
+func NewRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:          "godeez",
+		Short:        "GoDeez is a tool to download music from Deezer",
+		SilenceUsage: true,
+	}
+
+	root.AddCommand(
+		newDownloadCmd(),
+		newLoginCmd(),
+		newLogoutCmd(),
+		newUpdateCmd(),
+		newVersionCmd(),
+	)
+
+	return root
+}
+
+func wantsUpdateNotice(root *cobra.Command) bool {
 	if !term.IsTerminal(int(os.Stderr.Fd())) {
 		return false
 	}
@@ -43,7 +57,7 @@ func wantsUpdateNotice() bool {
 		return false
 	}
 
-	target, _, err := RootCmd.Find(args)
+	target, _, err := root.Find(args)
 	if err != nil || target == nil {
 		return false
 	}
