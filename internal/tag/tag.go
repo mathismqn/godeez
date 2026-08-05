@@ -1,7 +1,7 @@
 package tag
 
 import (
-	"path"
+	"path/filepath"
 
 	"github.com/bogem/id3v2/v2"
 	"github.com/go-flac/flacvorbis/v2"
@@ -39,7 +39,7 @@ type tagger interface {
 }
 
 func newTagger(filePath string) (tagger, error) {
-	if path.Ext(filePath) == ".mp3" {
+	if filepath.Ext(filePath) == ".mp3" {
 		tag, err := id3v2.Open(filePath, id3v2.Options{Parse: true})
 		if err != nil {
 			return nil, err

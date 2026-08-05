@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -12,7 +12,7 @@ type Store struct {
 }
 
 func Open(dir string) (*Store, error) {
-	db, err := bolt.Open(path.Join(dir, ".tracks.db"), 0600, nil)
+	db, err := bolt.Open(filepath.Join(dir, ".tracks.db"), 0600, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

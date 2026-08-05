@@ -2,7 +2,7 @@ package deezer
 
 import (
 	"encoding/json"
-	"path"
+	"path/filepath"
 )
 
 type Single struct {
@@ -28,7 +28,7 @@ func (s *Single) Tracks() []*Track {
 func (s *Single) SetTracks(tracks []*Track) {}
 
 func (s *Single) OutputDir(outputDir string) string {
-	return path.Join(outputDir, "Singles")
+	return filepath.Join(outputDir, "Singles")
 }
 
 func (s *Single) decode(data []byte) error {

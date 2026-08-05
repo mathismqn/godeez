@@ -2,7 +2,7 @@ package deezer
 
 import (
 	"encoding/json"
-	"path"
+	"path/filepath"
 
 	"github.com/flytam/filenamify"
 )
@@ -32,7 +32,7 @@ func (a *Artist) SetTracks(t []*Track) {
 
 func (a *Artist) OutputDir(outputDir string) string {
 	base, _ := filenamify.Filenamify(a.Results.Data.Name, filenamify.Options{})
-	return path.Join(outputDir, base)
+	return filepath.Join(outputDir, base)
 }
 
 func (a *Artist) decode(data []byte) error {

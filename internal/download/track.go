@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -43,7 +43,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	defer cancel()
 
 	fileName := track.Filename(d.kind, mediaFormat)
-	outputPath := path.Join(outputDir, fileName)
+	outputPath := filepath.Join(outputDir, fileName)
 
 	key := deezer.BlowfishKey(track.ID)
 	if err := d.streamToFile(dlCtx, stream, outputPath, key); err != nil {
