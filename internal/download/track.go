@@ -31,7 +31,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 
 	metadataChan := make(chan metadataResult, 1)
 	go func() {
-		metadataChan <- fetchMetadata(d.deezerClient.Session.HTTPClient, ctx, track, opts)
+		metadataChan <- fetchMetadata(ctx, d.deezerClient.Session.HTTPClient, track, opts)
 	}()
 
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)

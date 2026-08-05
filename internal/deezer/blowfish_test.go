@@ -51,6 +51,6 @@ func TestDecryptBlowfishRoundTrip(t *testing.T) {
 
 func TestDecryptBlowfishInvalidKey(t *testing.T) {
 	if _, err := DecryptBlowfish(make([]byte, 8), nil); err == nil {
-		t.Error("expected error for empty key")
+		t.Error("expected error for nil key")
 	}
 }

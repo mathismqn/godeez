@@ -19,7 +19,7 @@ type Credentials struct {
 	ARL      string `json:"arl,omitempty"`
 }
 
-func LoadCredentials() (*Credentials, error) {
+func loadCredentials() (*Credentials, error) {
 	secret, err := keyring.Get(keyringService, keyringUser)
 	if err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {
@@ -36,7 +36,7 @@ func LoadCredentials() (*Credentials, error) {
 	return &creds, nil
 }
 
-func SaveCredentials(creds *Credentials) error {
+func saveCredentials(creds *Credentials) error {
 	data, err := json.Marshal(creds)
 	if err != nil {
 		return err

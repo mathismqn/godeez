@@ -14,8 +14,8 @@ import (
 var ErrInvalidARL = errors.New("invalid or expired ARL cookie")
 
 type Session struct {
-	APIToken     string
-	LicenseToken string
+	apiToken     string
+	licenseToken string
 	HTTPClient   *http.Client
 	Premium      bool
 }
@@ -79,8 +79,8 @@ func authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 
 	opts := res.Results.User.Options
 	return &Session{
-		APIToken:     res.Results.APIToken,
-		LicenseToken: opts.LicenseToken,
+		apiToken:     res.Results.APIToken,
+		licenseToken: opts.LicenseToken,
 		HTTPClient:   client,
 		Premium:      opts.MobileOffline || opts.WebOffline,
 	}, nil

@@ -7,7 +7,7 @@ import (
 )
 
 func resolveARL(ctx context.Context, validate func(ctx context.Context, arl string) error) (string, error) {
-	creds, err := LoadCredentials()
+	creds, err := loadCredentials()
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +46,7 @@ func Login(ctx context.Context, email, password string) (string, string, error) 
 		return "", "", err
 	}
 
-	if err := SaveCredentials(creds); err != nil {
+	if err := saveCredentials(creds); err != nil {
 		return "", "", err
 	}
 

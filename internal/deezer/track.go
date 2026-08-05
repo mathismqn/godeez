@@ -69,17 +69,17 @@ func (t *Track) Filename(kind Kind, mediaFormat string) string {
 	return base + "." + ext
 }
 
-func truncateBytes(s string, max int) string {
-	if max <= 0 {
+func truncateBytes(s string, maxLen int) string {
+	if maxLen <= 0 {
 		return ""
 	}
-	if len(s) <= max {
+	if len(s) <= maxLen {
 		return s
 	}
 
 	last := 0
 	for i := range s {
-		if i > max {
+		if i > maxLen {
 			return s[:last]
 		}
 		last = i

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	neturl "net/url"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,7 +38,7 @@ func fetchBPM(ctx context.Context, httpClient *http.Client, artist, title, durat
 func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, duration string) (string, error) {
 	const rootURL = "https://songbpm.com"
 
-	values := neturl.Values{}
+	values := url.Values{}
 	values.Add("query", fmt.Sprintf("%s %s", artist, title))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rootURL+"/searches", bytes.NewBufferString(values.Encode()))
@@ -109,8 +109,8 @@ func findTrackURL(ctx context.Context, httpClient *http.Client, artist, title, d
 	return rootURL + matchURL, nil
 }
 
-func fetchBPMPage(ctx context.Context, httpClient *http.Client, url string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func fetchBPMPage(ctx context.Context, httpClient *http.Client, pageURL string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
 	if err != nil {
 		return "", err
 	}

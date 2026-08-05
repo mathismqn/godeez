@@ -73,7 +73,7 @@ func writeCache(version string) error {
 
 func check(ctx context.Context) (string, error) {
 	if entry, ok := readCache(); ok {
-		return newerThanCurrent(entry.LatestVersion), nil
+		return latestIfNewer(entry.LatestVersion), nil
 	}
 
 	release, err := New().Latest(ctx)
@@ -84,10 +84,10 @@ func check(ctx context.Context) (string, error) {
 	latest := release.Version()
 	_ = writeCache(latest)
 
-	return newerThanCurrent(latest), nil
+	return latestIfNewer(latest), nil
 }
 
-func newerThanCurrent(latest string) string {
+func latestIfNewer(latest string) string {
 	if IsNewer(buildinfo.Version(), latest) {
 		return latest
 	}

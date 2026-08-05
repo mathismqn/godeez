@@ -27,7 +27,7 @@ var managedPrefixes = []string{
 
 func resolveTarget() (string, error) {
 	if buildinfo.IsDev() {
-		return "", fmt.Errorf("development build cannot self-update. Install a release from https://github.com/%s/%s/releases",
+		return "", fmt.Errorf("development build cannot self-update; install a release from https://github.com/%s/%s/releases",
 			repoOwner, repoName)
 	}
 
@@ -43,7 +43,7 @@ func resolveTarget() (string, error) {
 
 	for _, prefix := range managedPrefixes {
 		if target == prefix || strings.HasPrefix(target, prefix+"/") {
-			return "", fmt.Errorf("%s was installed by a package manager. Update it with that instead", target)
+			return "", fmt.Errorf("%s was installed by a package manager; update it with that instead", target)
 		}
 	}
 
@@ -59,12 +59,12 @@ func CheckUpdatable() error {
 func checkWritable(dir string) error {
 	f, err := os.CreateTemp(dir, tmpPattern)
 	if err != nil {
-		hint := "Re-run with sudo"
+		hint := "re-run with sudo"
 		if runtime.GOOS == "windows" {
-			hint = "Re-run from an elevated prompt"
+			hint = "re-run from an elevated prompt"
 		}
 
-		return fmt.Errorf("cannot write to %s: %w. %s", dir, err, hint)
+		return fmt.Errorf("cannot write to %s: %w; %s", dir, err, hint)
 	}
 
 	name := f.Name()
@@ -198,7 +198,7 @@ func (u *Updater) replaceBinary(target, tmp string) error {
 
 	if err := os.Rename(tmp, target); err != nil {
 		if rollbackErr := os.Rename(old, target); rollbackErr != nil {
-			return fmt.Errorf("failed to install the new binary: %w. The previous one could not be restored from %s: %v",
+			return fmt.Errorf("failed to install the new binary: %w; the previous one could not be restored from %s: %v",
 				err, old, rollbackErr)
 		}
 

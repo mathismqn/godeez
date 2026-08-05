@@ -57,8 +57,8 @@ func fetchGenre(ctx context.Context, httpClient *http.Client, artist, title stri
 	return formatTags(filtered), nil
 }
 
-func fetchGenrePage(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func fetchGenrePage(ctx context.Context, httpClient *http.Client, pageURL string) (*goquery.Document, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
 	if err != nil {
 		return nil, err
 	}

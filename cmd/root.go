@@ -15,7 +15,7 @@ import (
 const updateNoticeAnnotation = "godeez:update-notice"
 
 func Execute(ctx context.Context) error {
-	root := NewRootCmd()
+	root := newRootCmd()
 
 	var notice <-chan string
 	if wantsUpdateNotice(root) {
@@ -29,7 +29,7 @@ func Execute(ctx context.Context) error {
 	return err
 }
 
-func NewRootCmd() *cobra.Command {
+func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:          "godeez",
 		Short:        "GoDeez is a tool to download music from Deezer",

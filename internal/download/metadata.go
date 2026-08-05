@@ -20,7 +20,7 @@ type metadataResult struct {
 	warnings []string
 }
 
-func fetchMetadata(httpClient *http.Client, ctx context.Context, track *deezer.Track, opts Options) metadataResult {
+func fetchMetadata(ctx context.Context, httpClient *http.Client, track *deezer.Track, opts Options) metadataResult {
 	if !opts.BPM && !opts.Genre {
 		return metadataResult{}
 	}
