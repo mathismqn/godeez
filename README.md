@@ -12,30 +12,26 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 [Installation](#installation) •
 [Updating](#updating) •
 [Configuration](#configuration) •
-[Usage](#usage) •
-[Contributing](#contributing) •
-[Support](#support-the-project) •
-[License](#license)
+[Usage](#usage)
 
 </div>
 
 ## Features
 
-- Download playlists, albums, artists’ top tracks, and individual tracks
-- Choose audio quality: **MP3 128kbps**, **MP3 320kbps** (default), or **FLAC** (⚠️ non‑premium accounts are limited to 128kbps)
+- Download playlists, albums, artists' top tracks, and individual tracks
+- Choose audio quality: MP3 128 kbps, MP3 320 kbps (default), or FLAC (⚠️ non-premium accounts are limited to 128 kbps)
+- Authenticate with an ARL cookie or with your Deezer email and password
 - Automatically embed metadata tags (artist, album, title, artwork, etc.)
-- Fetch and tag songs with **BPM**, **musical key**, and **genre**
-- Skip already-downloaded files using hashes and metadata
-- Support Windows, macOS, and Linux
-- Provide a simple, easy-to-use CLI
+- Fetch and tag tracks with BPM, musical key, and genre
+- Works on Windows, macOS, and Linux
 
 ## Installation
 
-To install **GoDeez**, download the latest binary for your platform from the [Releases](https://github.com/mathismqn/godeez/releases) page.
+Prebuilt binaries are available for every release.
 
 1. Go to the [Releases](https://github.com/mathismqn/godeez/releases) page.
 2. Download the appropriate binary for your operating system and architecture, named `godeez_<version>_<os>_<arch>`.
-3. (Optional) Move the binary to a directory included in `$PATH` for easier access.
+3. (Optional) Move the binary to a directory on your `$PATH` for easier access.
 
 Example (Linux/macOS):
 
@@ -45,7 +41,7 @@ chmod +x godeez_1.5.0_linux_amd64
 mv godeez_1.5.0_linux_amd64 /usr/local/bin/godeez
 ```
 
-Every release also ships a `checksums.txt`, so you can verify a download:
+Each release also includes a `checksums.txt`, so you can verify your download:
 
 ```bash
 sha256sum -c checksums.txt --ignore-missing
@@ -54,7 +50,8 @@ sha256sum -c checksums.txt --ignore-missing
 ### macOS
 
 The macOS binaries are not signed with an Apple Developer certificate, so
-Gatekeeper blocks them the first time. Clear the quarantine flag once:
+Gatekeeper blocks them on first run. You only need to clear the quarantine flag
+once:
 
 ```bash
 xattr -d com.apple.quarantine /usr/local/bin/godeez
@@ -62,10 +59,10 @@ xattr -d com.apple.quarantine /usr/local/bin/godeez
 
 ## Updating
 
-**GoDeez** can replace itself with the latest release:
+**GoDeez** can update itself to the latest release:
 
 ```bash
-# See whether a new version exists
+# Check for a new version
 godeez update --check
 
 # Download, verify, and install it
@@ -76,13 +73,13 @@ The new binary is verified against the release's published SHA256 checksum
 before it replaces the current one. If **GoDeez** lives in a directory you do
 not own (such as `/usr/local/bin` on some systems), run `sudo godeez update`.
 
-To disable the notice about new versions:
+To disable new-version notifications:
 
 ```bash
 export GODEEZ_NO_UPDATE_CHECK=1
 ```
 
-To see what you are running:
+To check which version you are running:
 
 ```bash
 godeez version
@@ -90,7 +87,11 @@ godeez version
 
 ## Configuration
 
-**GoDeez** requires a Deezer ARL cookie for authentication. Set it as an environment variable:
+**GoDeez** authenticates to Deezer in one of two ways: with an **ARL cookie** copied from your browser, or with your **email and password**. The ARL cookie works out of the box and is the recommended option; email/password login requires two extra keys that **GoDeez** does not ship (see below).
+
+### ARL cookie
+
+Set your ARL cookie as an environment variable:
 
 ```bash
 export DEEZER_ARL="your_arl_cookie_here"
@@ -98,29 +99,60 @@ export DEEZER_ARL="your_arl_cookie_here"
 
 To make it persistent, add the line above to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.).
 
-### How to retrieve your ARL cookie
+#### How to retrieve your ARL cookie
 
 1. Open your browser and log in to your [Deezer](https://www.deezer.com) account.
-2. Open the Developer Tools (right-click on the page and select “Inspect” or press F12).
+2. Open the **Developer Tools** (right-click on the page and select **Inspect**, or press <kbd>F12</kbd>).
 3. Navigate to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox).
-4. In the left panel, look for **Cookies** and select `https://www.deezer.com`.
+4. In the left panel, look for **Cookies** and select **https://www.deezer.com**.
 5. Find the `arl` cookie and copy its value.
 
 > **Note:** The ARL cookie may expire after some time. If you get authentication errors, retrieve a fresh cookie using the steps above.
 
+### Email and password
+
+Instead of copying a cookie, you can log in once with your Deezer account:
+
+```bash
+godeez login
+```
+
+You will be prompted for your email and password. On success, **GoDeez** stores your credentials in your system keyring under the service name `godeez`. From then on, **GoDeez** authenticates on its own and renews the session when it expires.
+
+To remove the stored credentials:
+
+```bash
+godeez logout
+```
+
+#### Gateway keys
+
+Email/password login goes through Deezer's mobile gateway, which requires two keys:
+
+```bash
+export DEEZER_MOBILE_API_KEY="your_api_key_here"
+export DEEZER_MOBILE_GW_KEY="your_gateway_key"   # exactly 16 characters
+```
+
+**GoDeez** does not bundle these keys, so you have to supply your own. For background on what they are and where they live in Deezer's clients, see [this write-up](https://gist.github.com/svbnet/b79b705a4c19d74896670c1ac7ad627e). If either variable is missing, `godeez login` exits with an error.
+
+> **Note:** `DEEZER_ARL` takes precedence over stored credentials. If it is set, **GoDeez** always uses the cookie and never falls back to your login, so unset it (and remove it from your shell profile) before running `godeez login`.
+
+> **Note:** The keyring entry holds your password alongside the ARL because the password is reused to renew expired sessions. On Linux, the keyring requires a running secret service; without one, `godeez login` fails with `system keyring is unavailable`.
+
 ### Output directory
 
-Downloaded files are saved to `~/Music/GoDeez`. The download database (`.tracks.db`) is stored alongside your music in the output directory.
+Downloaded files are saved to `~/Music/GoDeez`. The download database (`.tracks.db`) is stored in the same directory as your music.
 
 > **Upgrading from v1.3.0?** The `~/.godeez` directory and `config.toml` are no longer used. Set the `DEEZER_ARL` environment variable instead. Your existing database will be migrated automatically on first run.
 
 ## Usage
 
-### CLI Overview
+### CLI overview
 
 Running `godeez` without arguments shows the help menu:
 
-```bash
+```text
 GoDeez is a tool to download music from Deezer
 
 Usage:
@@ -128,10 +160,12 @@ Usage:
 
 Available Commands:
   completion  Generate the autocompletion script for the specified shell
-  download    Download songs from Deezer
+  download    Download tracks from Deezer
   help        Help about any command
+  login       Log in to Deezer with your email and password
+  logout      Remove stored Deezer credentials
   update      Update GoDeez to the latest version
-  version     Print the GoDeez version
+  version     Print the current version of GoDeez
 
 Flags:
   -h, --help   help for godeez
@@ -141,16 +175,16 @@ Use "godeez [command] --help" for more information about a command.
 
 ### Download commands
 
-```bash
-Download songs from Deezer
+```text
+Download tracks from Deezer
 
 Usage:
   godeez download [command]
 
 Available Commands:
-  album       Download songs from an album
-  artist      Download top songs from an artist
-  playlist    Download songs from a playlist
+  album       Download tracks from an album
+  artist      Download an artist's top tracks
+  playlist    Download tracks from a playlist
   track       Download a single track
 
 Flags:
@@ -158,7 +192,7 @@ Flags:
       --genre              fetch genre and add to file tags
   -h, --help               help for download
   -q, --quality string     download quality [mp3_128, mp3_320, flac] (default "mp3_320")
-      --strict             fail the song download if the quality is not available
+      --strict             fail the download if the requested quality is unavailable
   -t, --timeout duration   timeout for each download (e.g. 10s, 1m, 2m30s) (default 2m0s)
 
 Use "godeez download [command] --help" for more information about a command.
@@ -173,32 +207,31 @@ godeez download album 12345678
 # Download a playlist
 godeez download playlist 87654321
 
-# Download top tracks from an artist
+# Download an artist's top tracks (limit to 5 tracks)
 godeez download artist 11223344 --limit 5
 
 # Download a single track
 godeez download track 98765432
 
-# Download with specific quality, BPM and genre data
+# Download with specific quality, BPM, and genre data
 godeez download track 98765432 --quality flac --bpm --genre
 ```
 
 ## Contributing
 
-Contributions help make **GoDeez** a better tool for everyone, and any help is greatly appreciated.
-Whether it’s a bug fix, a new feature, or improving documentation, your input is valuable.
+Contributions make **GoDeez** better for everyone, and any help is greatly appreciated — whether it's a bug fix, a new feature, or a documentation improvement.
 
-If you have an idea for improvement, feel free to fork the repository and submit a pull request. You can also open an issue if you spot a bug or have a feature suggestion.
+To contribute, fork the repository and open a pull request. To report a bug or suggest a feature, open an issue instead.
 
-## Support the Project
+## Support the project
 
-If **GoDeez** helps you enjoy your music collection, please consider giving it a ⭐!
+If **GoDeez** helps you enjoy your music collection, please consider giving it a star ⭐
 
-**Why star us?**
+**Why star the project?**
 
-- Helps more music lovers discover the project
-- Shows appreciation for the work and motivates development
-- Takes just one click but means the world to us!
+- Helps more music lovers discover it
+- Shows appreciation for the work and keeps me motivated
+- Takes one click, and it means a lot
 
 ## License
 
@@ -206,4 +239,4 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 
 ---
 
-> ⚠️ This tool is provided for educational and personal use only. Please ensure your usage complies with Deezer’s Terms of Service.
+> ⚠️ This tool is provided for educational and personal use only. Please ensure your usage complies with Deezer's Terms of Service.
