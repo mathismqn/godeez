@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+const PartPattern = ".godeez-*.part"
+
 func EnsureDir(path string) error {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
