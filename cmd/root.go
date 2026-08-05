@@ -7,7 +7,7 @@ import (
 	"slices"
 
 	"github.com/mathismqn/godeez/internal/buildinfo"
-	"github.com/mathismqn/godeez/internal/updater"
+	"github.com/mathismqn/godeez/internal/update"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -19,7 +19,7 @@ func Execute(ctx context.Context) error {
 
 	var notice <-chan string
 	if wantsUpdateNotice(root) {
-		notice = updater.StartCheck(ctx)
+		notice = update.StartCheck(ctx)
 	}
 
 	err := root.ExecuteContext(ctx)

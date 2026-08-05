@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/mathismqn/godeez/internal/buildinfo"
-	"github.com/mathismqn/godeez/internal/updater"
+	"github.com/mathismqn/godeez/internal/update"
 	"github.com/spf13/cobra"
 )
 
@@ -39,11 +39,11 @@ func newUpdateCmd() *cobra.Command {
 }
 
 func runUpdate(ctx context.Context, opts *updateOptions) error {
-	if err := updater.CheckUpdatable(); err != nil {
+	if err := update.CheckUpdatable(); err != nil {
 		return err
 	}
 
-	u := updater.New()
+	u := update.New()
 	u.Out = os.Stdout
 	current := buildinfo.Version()
 
@@ -55,7 +55,7 @@ func runUpdate(ctx context.Context, opts *updateOptions) error {
 	latest := release.Version()
 	fmt.Printf("Current: %s\nLatest:  %s\n", current, latest)
 
-	if !updater.IsNewer(current, latest) && !opts.force {
+	if !update.IsNewer(current, latest) && !opts.force {
 		fmt.Println("Already up to date.")
 
 		return nil
