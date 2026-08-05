@@ -51,10 +51,6 @@ func (a *Artist) String() string {
 	return b.String()
 }
 
-func (a *Artist) GetType() string {
-	return "Artist"
-}
-
 func (a *Artist) GetTitle() string {
 	return a.Results.Data.Name
 }

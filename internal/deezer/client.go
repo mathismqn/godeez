@@ -59,7 +59,12 @@ func resolveSession(ctx context.Context, appConfig *config.Config) (*Session, er
 	return session, nil
 }
 
-func (c *Client) FetchResource(ctx context.Context, resource Resource, id string) error {
+func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resource, error) {
+	resource, err := kind.newResource()
+	if err != nil {
+		return nil, err
+	}
+
 	payload := map[string]interface{}{
 		"nb":     10000,
 		"start":  0,
@@ -68,46 +73,32 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 		"tags":   true,
 		"header": true,
 	}
-
-	var idKey string
-	switch resource.(type) {
-	case *Playlist:
-		idKey = "playlist_id"
-	case *Album:
-		idKey = "alb_id"
-	case *Artist:
-		idKey = "art_id"
-	case *Single:
-		idKey = "sng_id"
-	default:
-		return fmt.Errorf("unsupported resource type: %T", resource)
-	}
-	payload[idKey] = id
+	payload[kind.idKey()] = id
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", resource.GetType(), c.Session.APIToken)
+	url := fmt.Sprintf("https://www.deezer.com/ajax/gw-light.php?method=deezer.page%s&input=3&api_version=1.0&api_token=%s", kind.pageMethod(), c.Session.APIToken)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := c.Session.HttpClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bodyStr := string(body)
@@ -121,15 +112,19 @@ func (c *Client) FetchResource(ctx context.Context, resource Resource, id string
 		{`"DATA_ERROR":"song::getData"`, "invalid track ID"},
 	} {
 		if strings.Contains(bodyStr, check.marker) {
-			return fmt.Errorf("%s", check.errMsg)
+			return nil, fmt.Errorf("%s", check.errMsg)
 		}
 	}
 
 	if strings.Contains(bodyStr, `"results":{}`) {
-		return fmt.Errorf("unexpected response")
+		return nil, fmt.Errorf("unexpected response")
 	}
 
-	return resource.Unmarshal(body)
+	if err := resource.Unmarshal(body); err != nil {
+		return nil, err
+	}
+
+	return resource, nil
 }
 
 func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {

@@ -36,10 +36,6 @@ Duration: %s
 	)
 }
 
-func (s *Single) GetType() string {
-	return "Track"
-}
-
 func (s *Single) GetTitle() string {
 	if s.Results.Data == nil {
 		return ""

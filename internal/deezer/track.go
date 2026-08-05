@@ -47,14 +47,14 @@ func (t *Track) GetTitle() string {
 	return t.Title
 }
 
-func (t *Track) GetFileName(resourceType, mediaFormat string) string {
+func (t *Track) Filename(kind Kind, mediaFormat string) string {
 	ext := "mp3"
 	if mediaFormat == "FLAC" {
 		ext = "flac"
 	}
 
 	prefix := ""
-	if resourceType == "album" {
+	if kind == KindAlbum {
 		if n, err := strconv.Atoi(t.TrackNumber); err == nil {
 			prefix = fmt.Sprintf("%02d. ", n)
 		} else {

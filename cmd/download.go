@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mathismqn/godeez/internal/config"
+	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/downloader"
 	"github.com/spf13/cobra"
 )
@@ -34,17 +35,17 @@ func init() {
 	downloadCmd.PersistentFlags().BoolVar(&opts.Strict, "strict", false, "fail the download if the requested quality is unavailable")
 
 	downloadCmd.AddCommand(
-		newDownloadCmd("album"),
-		newDownloadCmd("playlist"),
-		newDownloadCmd("artist"),
-		newDownloadCmd("track"),
+		newDownloadCmd(deezer.KindAlbum),
+		newDownloadCmd(deezer.KindPlaylist),
+		newDownloadCmd(deezer.KindArtist),
+		newDownloadCmd(deezer.KindTrack),
 	)
 }
 
-func newDownloadCmd(resourceType string) *cobra.Command {
+func newDownloadCmd(kind deezer.Kind) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s <%s_id>", resourceType, resourceType),
-		Short: downloadShort(resourceType),
+		Use:   fmt.Sprintf("%s <%s_id>", kind, kind),
+		Short: downloadShort(kind),
 		Args:  cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			appConfig, err := config.New()
@@ -59,7 +60,7 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appConfig := cmd.Context().Value(appConfigKey).(*config.Config)
 
-			err := downloader.New(appConfig, resourceType).Run(cmd.Context(), opts, args[0])
+			err := downloader.New(appConfig, kind).Run(cmd.Context(), opts, args[0])
 			if errors.Is(err, context.Canceled) {
 				return nil
 			}
@@ -67,22 +68,22 @@ func newDownloadCmd(resourceType string) *cobra.Command {
 		},
 	}
 
-	if resourceType == "artist" {
+	if kind == deezer.KindArtist {
 		cmd.Flags().IntVarP(&opts.Limit, "limit", "l", 10, "number of tracks to download")
 	}
 
 	return cmd
 }
 
-func downloadShort(resourceType string) string {
-	switch resourceType {
-	case "artist":
+func downloadShort(kind deezer.Kind) string {
+	switch kind {
+	case deezer.KindArtist:
 		return "Download an artist's top tracks"
-	case "track":
+	case deezer.KindTrack:
 		return "Download a single track"
-	case "album":
+	case deezer.KindAlbum:
 		return "Download tracks from an album"
 	default:
-		return fmt.Sprintf("Download tracks from a %s", resourceType)
+		return fmt.Sprintf("Download tracks from a %s", kind)
 	}
 }

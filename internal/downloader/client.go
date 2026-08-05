@@ -23,7 +23,7 @@ const chunkSize = 2048
 
 type Client struct {
 	appConfig    *config.Config
-	resourceType string
+	kind         deezer.Kind
 	deezerClient *deezer.Client
 
 	hashIndexOnce sync.Once
@@ -31,10 +31,10 @@ type Client struct {
 	hashIndexErr  error
 }
 
-func New(appConfig *config.Config, resourceType string) *Client {
+func New(appConfig *config.Config, kind deezer.Kind) *Client {
 	return &Client{
-		appConfig:    appConfig,
-		resourceType: resourceType,
+		appConfig: appConfig,
+		kind:      kind,
 	}
 }
 
@@ -66,24 +66,20 @@ func (c *Client) initDeezerClient(ctx context.Context, opts Options) error {
 }
 
 func (c *Client) prepareResource(ctx context.Context, id string, opts Options) (deezer.Resource, string, error) {
-	resource, err := c.createResource()
+	resource, err := c.deezerClient.FetchResource(ctx, c.kind, id)
 	if err != nil {
-		return nil, "", err
-	}
-
-	if err := c.deezerClient.FetchResource(ctx, resource, id); err != nil {
 		return nil, "", fmt.Errorf("failed to fetch resource: %w", err)
 	}
 
 	tracks := resource.GetTracks()
 	if len(tracks) == 0 {
-		if c.resourceType == "track" {
+		if c.kind == deezer.KindTrack {
 			return nil, "", fmt.Errorf("track with ID %s not found", id)
 		}
-		return nil, "", fmt.Errorf("%s has no tracks", c.resourceType)
+		return nil, "", fmt.Errorf("%s has no tracks", c.kind)
 	}
 
-	if c.resourceType == "artist" && len(tracks) > opts.Limit {
+	if c.kind == deezer.KindArtist && len(tracks) > opts.Limit {
 		resource.SetTracks(tracks[:opts.Limit])
 	}
 
@@ -95,30 +91,15 @@ func (c *Client) prepareResource(ctx context.Context, id string, opts Options) (
 	return resource, outputDir, nil
 }
 
-func (c *Client) createResource() (deezer.Resource, error) {
-	switch c.resourceType {
-	case "album":
-		return &deezer.Album{}, nil
-	case "playlist":
-		return &deezer.Playlist{}, nil
-	case "artist":
-		return &deezer.Artist{}, nil
-	case "track":
-		return &deezer.Single{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported resource type: %s", c.resourceType)
-	}
-}
-
 func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource, opts Options, outputDir string) error {
 	tracks := resource.GetTracks()
 	startTime := time.Now()
 
-	if c.resourceType != "track" {
+	if c.kind != deezer.KindTrack {
 		fmt.Printf("%s\n\nStarting download...\n\n", resource)
 	}
 
-	progress := newProgressTracker(len(tracks), c.resourceType)
+	progress := newProgressTracker(len(tracks), c.kind)
 
 	for i, track := range tracks {
 		if ctx.Err() != nil {
@@ -169,7 +150,7 @@ func (c *Client) downloadTrack(ctx context.Context, resource deezer.Resource, tr
 	dlCtx, cancel := context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
-	fileName := track.GetFileName(c.resourceType, mediaFormat)
+	fileName := track.Filename(c.kind, mediaFormat)
 	outputPath := path.Join(outputDir, fileName)
 
 	key := crypto.GetBlowfishKey(track.ID)

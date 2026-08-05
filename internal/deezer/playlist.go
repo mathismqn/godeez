@@ -37,10 +37,6 @@ Duration: %s
 	)
 }
 
-func (p *Playlist) GetType() string {
-	return "Playlist"
-}
-
 func (p *Playlist) GetTitle() string {
 	return p.Results.Data.Title
 }

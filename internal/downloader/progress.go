@@ -25,15 +25,15 @@ type downloadStats struct {
 }
 
 type progressTracker struct {
-	stats        downloadStats
-	totalTracks  int
-	resourceType string
+	stats       downloadStats
+	totalTracks int
+	kind        deezer.Kind
 }
 
-func newProgressTracker(totalTracks int, resourceType string) *progressTracker {
+func newProgressTracker(totalTracks int, kind deezer.Kind) *progressTracker {
 	return &progressTracker{
-		totalTracks:  totalTracks,
-		resourceType: resourceType,
+		totalTracks: totalTracks,
+		kind:        kind,
 	}
 }
 
@@ -84,7 +84,7 @@ func (pt *progressTracker) handleResult(index int, track *deezer.Track, result d
 }
 
 func (pt *progressTracker) printSummary(outputDir string, elapsed time.Duration) {
-	if pt.resourceType != "track" {
+	if pt.kind != deezer.KindTrack {
 		warningsLine := ""
 		if pt.stats.warnings > 0 {
 			warningsLine = fmt.Sprintf("\nWarnings:       %d", pt.stats.warnings)

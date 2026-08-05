@@ -48,10 +48,6 @@ Duration: %s
 	)
 }
 
-func (a *Album) GetType() string {
-	return "Album"
-}
-
 func (a *Album) GetTitle() string {
 	return a.Results.Data.Title
 }
