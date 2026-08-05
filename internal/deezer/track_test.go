@@ -61,6 +61,13 @@ func TestFilename(t *testing.T) {
 			want:        "Artist - Song.flac",
 		},
 		{
+			name:        "wav extension",
+			track:       Track{Artist: "Artist", Title: "Song"},
+			kind:        KindTrack,
+			mediaFormat: "WAV",
+			want:        "Artist - Song.wav",
+		},
+		{
 			name:        "version appended",
 			track:       Track{Artist: "Artist", Title: "Song", Version: "(Live)"},
 			kind:        KindTrack,

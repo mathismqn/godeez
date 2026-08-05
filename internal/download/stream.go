@@ -8,15 +8,13 @@ import (
 	"path/filepath"
 
 	"github.com/mathismqn/godeez/internal/deezer"
+	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
-const (
-	chunkSize   = 2048
-	partPattern = ".godeez-*.part"
-)
+const chunkSize = 2048
 
 func sweepPartFiles(dir string) {
-	matches, err := filepath.Glob(filepath.Join(dir, partPattern))
+	matches, err := filepath.Glob(filepath.Join(dir, fsutil.PartPattern))
 	if err != nil {
 		return
 	}
@@ -26,11 +24,25 @@ func sweepPartFiles(dir string) {
 }
 
 func (d *Downloader) streamToFile(ctx context.Context, stream io.ReadCloser, outputPath string, key []byte) error {
-	defer stream.Close()
-
-	file, err := os.CreateTemp(filepath.Dir(outputPath), partPattern)
+	tmpPath, err := d.streamToTempFile(ctx, stream, filepath.Dir(outputPath), key)
 	if err != nil {
 		return err
+	}
+
+	if err := os.Rename(tmpPath, outputPath); err != nil {
+		os.Remove(tmpPath)
+		return err
+	}
+
+	return nil
+}
+
+func (d *Downloader) streamToTempFile(ctx context.Context, stream io.ReadCloser, dir string, key []byte) (string, error) {
+	defer stream.Close()
+
+	file, err := os.CreateTemp(dir, fsutil.PartPattern)
+	if err != nil {
+		return "", err
 	}
 	tmpPath := file.Name()
 	done := false
@@ -45,7 +57,7 @@ func (d *Downloader) streamToFile(ctx context.Context, stream io.ReadCloser, out
 	for chunk := 0; ; chunk++ {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return "", ctx.Err()
 		default:
 		}
 
@@ -57,7 +69,7 @@ func (d *Downloader) streamToFile(ctx context.Context, stream io.ReadCloser, out
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				return err
+				return "", err
 			}
 		}
 
@@ -68,12 +80,12 @@ func (d *Downloader) streamToFile(ctx context.Context, stream io.ReadCloser, out
 		if chunk%3 == 0 && totalRead == chunkSize {
 			buffer, err = deezer.DecryptBlowfish(buffer, key)
 			if err != nil {
-				return err
+				return "", err
 			}
 		}
 
 		if _, err = file.Write(buffer[:totalRead]); err != nil {
-			return err
+			return "", err
 		}
 
 		if totalRead < chunkSize {
@@ -82,15 +94,12 @@ func (d *Downloader) streamToFile(ctx context.Context, stream io.ReadCloser, out
 	}
 
 	if err := file.Sync(); err != nil {
-		return err
+		return "", err
 	}
 	if err := file.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(tmpPath, outputPath); err != nil {
-		return err
+		return "", err
 	}
 	done = true
 
-	return nil
+	return tmpPath, nil
 }

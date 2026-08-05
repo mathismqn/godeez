@@ -12,6 +12,7 @@ var validQualities = map[string]bool{
 	"mp3_128": true,
 	"mp3_320": true,
 	"flac":    true,
+	"wav":     true,
 }
 
 type Options struct {
@@ -21,6 +22,17 @@ type Options struct {
 	BPM     bool
 	Genre   bool
 	Strict  bool
+}
+
+func (o *Options) sourceQuality() string {
+	if o.Quality == "wav" {
+		return "flac"
+	}
+	return o.Quality
+}
+
+func (o *Options) convertsToWAV() bool {
+	return o.Quality == "wav"
 }
 
 func (o *Options) Validate(kind deezer.Kind) error {

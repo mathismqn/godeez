@@ -39,12 +39,15 @@ type tagger interface {
 }
 
 func newTagger(filePath string) (tagger, error) {
-	if filepath.Ext(filePath) == ".mp3" {
+	switch filepath.Ext(filePath) {
+	case ".mp3":
 		tag, err := id3v2.Open(filePath, id3v2.Options{Parse: true})
 		if err != nil {
 			return nil, err
 		}
 		return &id3v2Tagger{tag: tag}, nil
+	case ".wav":
+		return &wavTagger{path: filePath}, nil
 	}
 
 	file, err := flac.ParseFile(filePath)

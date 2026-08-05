@@ -47,10 +47,13 @@ func (t *Track) FullTitle() string {
 	return t.Title
 }
 
-func (t *Track) Filename(kind Kind, mediaFormat string) string {
+func (t *Track) Filename(kind Kind, format string) string {
 	ext := "mp3"
-	if mediaFormat == "FLAC" {
+	switch format {
+	case "FLAC":
 		ext = "flac"
+	case "WAV":
+		ext = "wav"
 	}
 
 	prefix := ""
