@@ -15,7 +15,6 @@ import (
 	"github.com/mathismqn/godeez/internal/crypto"
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/fileutil"
-	"github.com/mathismqn/godeez/internal/logger"
 	"github.com/mathismqn/godeez/internal/store"
 	"github.com/mathismqn/godeez/internal/tags"
 )
@@ -26,7 +25,6 @@ type Client struct {
 	appConfig    *config.Config
 	resourceType string
 	deezerClient *deezer.Client
-	Logger       *logger.Logger
 
 	hashIndexOnce sync.Once
 	hashIndex     *fileutil.HashIndex
@@ -37,7 +35,6 @@ func New(appConfig *config.Config, resourceType string) *Client {
 	return &Client{
 		appConfig:    appConfig,
 		resourceType: resourceType,
-		Logger:       logger.New(nil),
 	}
 }
 
@@ -51,7 +48,7 @@ func (c *Client) Run(ctx context.Context, opts Options, id string) error {
 		return err
 	}
 
-	return c.downloadAllTracks(ctx, resource, id, opts, outputDir)
+	return c.downloadAllTracks(ctx, resource, opts, outputDir)
 }
 
 func (c *Client) initDeezerClient(ctx context.Context, opts Options) error {
@@ -113,7 +110,7 @@ func (c *Client) createResource() (deezer.Resource, error) {
 	}
 }
 
-func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource, resourceID string, opts Options, outputDir string) error {
+func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource, opts Options, outputDir string) error {
 	tracks := resource.GetTracks()
 	startTime := time.Now()
 
@@ -121,7 +118,7 @@ func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource
 		fmt.Printf("%s\n\nStarting download...\n\n", resource)
 	}
 
-	progress := newProgressTracker(c.Logger, len(tracks), c.resourceType)
+	progress := newProgressTracker(len(tracks), c.resourceType)
 
 	for i, track := range tracks {
 		if ctx.Err() != nil {
@@ -139,7 +136,7 @@ func (c *Client) downloadAllTracks(ctx context.Context, resource deezer.Resource
 		progress.handleResult(i, track, result)
 	}
 
-	progress.printSummary(resource.GetTitle(), resourceID, outputDir, time.Since(startTime))
+	progress.printSummary(outputDir, time.Since(startTime))
 
 	return nil
 }

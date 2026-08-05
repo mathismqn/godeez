@@ -12,7 +12,6 @@ import (
 type Config struct {
 	ARLCookie string
 	OutputDir string
-	HomeDir   string
 }
 
 func New() (*Config, error) {
@@ -49,6 +48,5 @@ func New() (*Config, error) {
 	return &Config{
 		ARLCookie: arl,
 		OutputDir: outputDir,
-		HomeDir:   homeDir,
 	}, nil
 }

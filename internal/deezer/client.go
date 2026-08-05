@@ -14,8 +14,7 @@ import (
 )
 
 type Client struct {
-	AppConfig *config.Config
-	Session   *Session
+	Session *Session
 }
 
 func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
@@ -25,8 +24,7 @@ func NewClient(ctx context.Context, appConfig *config.Config) (*Client, error) {
 	}
 
 	return &Client{
-		AppConfig: appConfig,
-		Session:   session,
+		Session: session,
 	}, nil
 }
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/briandowns/spinner"
 	"github.com/mathismqn/godeez/internal/deezer"
-	"github.com/mathismqn/godeez/internal/logger"
 )
 
 type downloadResult struct {
@@ -26,15 +25,13 @@ type downloadStats struct {
 }
 
 type progressTracker struct {
-	logger       *logger.Logger
 	stats        downloadStats
 	totalTracks  int
 	resourceType string
 }
 
-func newProgressTracker(logger *logger.Logger, totalTracks int, resourceType string) *progressTracker {
+func newProgressTracker(totalTracks int, resourceType string) *progressTracker {
 	return &progressTracker{
-		logger:       logger,
 		totalTracks:  totalTracks,
 		resourceType: resourceType,
 	}
@@ -65,7 +62,6 @@ func (pt *progressTracker) handleResult(index int, track *deezer.Track, result d
 
 	if result.err != nil {
 		pt.stats.failed++
-		pt.logger.Errorf("Failed to download %s - %s: %v\n", track.Artist, trackTitle, result.err)
 		fmt.Printf("%s ✖ Failed: %s - %s:\n    Error: %v\n",
 			trackProgress, track.Artist, trackTitle, result.err)
 		return
@@ -75,7 +71,6 @@ func (pt *progressTracker) handleResult(index int, track *deezer.Track, result d
 	if len(result.warnings) > 0 {
 		pt.stats.warnings++
 	}
-	pt.logger.Infof("Downloaded %s - %s\n", track.Artist, trackTitle)
 
 	symbol := "✔"
 	if len(result.warnings) > 0 {
@@ -84,17 +79,11 @@ func (pt *progressTracker) handleResult(index int, track *deezer.Track, result d
 	fmt.Printf("%s %s Downloaded: %s - %s\n", trackProgress, symbol, track.Artist, trackTitle)
 
 	for _, w := range result.warnings {
-		pt.logger.Warnf("Warning: %s\n", w)
 		fmt.Printf("    Warning: %s\n", w)
 	}
 }
 
-func (pt *progressTracker) printSummary(resourceTitle, resourceID, outputDir string, elapsed time.Duration) {
-	if pt.stats.downloaded > 0 || pt.stats.failed > 0 {
-		pt.logger.Infof("Resource %s (%s): %d downloaded, %d skipped, %d failed\n",
-			resourceTitle, resourceID, pt.stats.downloaded, pt.stats.skipped, pt.stats.failed)
-	}
-
+func (pt *progressTracker) printSummary(outputDir string, elapsed time.Duration) {
 	if pt.resourceType != "track" {
 		warningsLine := ""
 		if pt.stats.warnings > 0 {
