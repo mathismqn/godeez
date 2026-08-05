@@ -20,11 +20,11 @@ type Playlist struct {
 	} `json:"results"`
 }
 
-func (p *Playlist) GetTitle() string {
+func (p *Playlist) Title() string {
 	return p.Results.Data.Title
 }
 
-func (p *Playlist) GetTracks() []*Track {
+func (p *Playlist) Tracks() []*Track {
 	return p.Results.Tracks.Data
 }
 
@@ -32,11 +32,11 @@ func (p *Playlist) SetTracks(t []*Track) {
 	p.Results.Tracks.Data = t
 }
 
-func (p *Playlist) GetOutputDir(outputDir string) string {
+func (p *Playlist) OutputDir(outputDir string) string {
 	base, _ := filenamify.Filenamify(p.Results.Data.Title, filenamify.Options{})
 	return path.Join(outputDir, base)
 }
 
-func (p *Playlist) Unmarshal(data []byte) error {
+func (p *Playlist) decode(data []byte) error {
 	return json.Unmarshal(data, p)
 }

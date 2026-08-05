@@ -20,7 +20,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 		return downloadResult{err: fmt.Errorf("failed to fetch media: %w", err)}
 	}
 
-	mediaFormat := media.GetFormat()
+	mediaFormat := media.Format()
 	if opts.Strict && strings.ToLower(mediaFormat) != opts.Quality {
 		return downloadResult{err: fmt.Errorf("requested quality '%s' not available", opts.Quality)}
 	}
@@ -31,10 +31,10 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 
 	metadataChan := make(chan metadataResult, 1)
 	go func() {
-		metadataChan <- fetchMetadata(d.deezerClient.Session.HttpClient, ctx, track, opts)
+		metadataChan <- fetchMetadata(d.deezerClient.Session.HTTPClient, ctx, track, opts)
 	}()
 
-	stream, err := d.deezerClient.GetMediaStream(ctx, media)
+	stream, err := d.deezerClient.MediaStream(ctx, media)
 	if err != nil {
 		return downloadResult{err: fmt.Errorf("failed to get media stream: %w", err)}
 	}

@@ -43,7 +43,7 @@ func (pt *progressTracker) startDownload(index int, track *deezer.Track) *spinne
 	sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	sp.Writer = os.Stdout
 	sp.Prefix = trackProgress + " "
-	sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", track.Artist, track.GetTitle())
+	sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", track.Artist, track.FullTitle())
 	sp.Start()
 
 	return sp
@@ -51,7 +51,7 @@ func (pt *progressTracker) startDownload(index int, track *deezer.Track) *spinne
 
 func (pt *progressTracker) handleResult(index int, track *deezer.Track, result downloadResult) {
 	trackProgress := fmt.Sprintf("[%d/%d]", index+1, pt.totalTracks)
-	trackTitle := track.GetTitle()
+	trackTitle := track.FullTitle()
 
 	if result.skipped {
 		pt.stats.skipped++

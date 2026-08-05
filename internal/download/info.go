@@ -81,7 +81,7 @@ func artistInfo(a *deezer.Artist) string {
 	fmt.Fprintf(&b, "Top %d most popular tracks:\n", limit)
 	for i := 0; i < limit; i++ {
 		t := tracks[i]
-		fmt.Fprintf(&b, "    %2d. %s – %s\n", i+1, t.Artist, t.GetTitle())
+		fmt.Fprintf(&b, "    %2d. %s – %s\n", i+1, t.Artist, t.FullTitle())
 	}
 	fmt.Fprintf(&b, "===========================================\n")
 
@@ -104,7 +104,7 @@ Title:    %s
 Artist:   %s
 Duration: %s
 ==================================================`,
-		s.Results.Data.GetTitle(),
+		s.Results.Data.FullTitle(),
 		s.Results.Data.Artist,
 		time.Duration(duration)*time.Second,
 	)

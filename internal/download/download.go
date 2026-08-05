@@ -65,7 +65,7 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 		return nil, "", fmt.Errorf("failed to fetch resource: %w", err)
 	}
 
-	tracks := resource.GetTracks()
+	tracks := resource.Tracks()
 	if len(tracks) == 0 {
 		if d.kind == deezer.KindTrack {
 			return nil, "", fmt.Errorf("track with ID %s not found", id)
@@ -77,7 +77,7 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 		resource.SetTracks(tracks[:opts.Limit])
 	}
 
-	outputDir := resource.GetOutputDir(d.appConfig.OutputDir)
+	outputDir := resource.OutputDir(d.appConfig.OutputDir)
 	if err := fsutil.EnsureDir(outputDir); err != nil {
 		return nil, "", fmt.Errorf("failed to create output directory: %w", err)
 	}
@@ -86,7 +86,7 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 }
 
 func (d *Downloader) downloadAllTracks(ctx context.Context, resource deezer.Resource, opts Options, outputDir string) error {
-	tracks := resource.GetTracks()
+	tracks := resource.Tracks()
 	startTime := time.Now()
 
 	if d.kind != deezer.KindTrack {

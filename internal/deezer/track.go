@@ -40,7 +40,7 @@ type Track struct {
 	TrackToken   string       `json:"TRACK_TOKEN"`
 }
 
-func (t *Track) GetTitle() string {
+func (t *Track) FullTitle() string {
 	if t.Version != "" {
 		return t.Title + " " + t.Version
 	}
@@ -62,7 +62,7 @@ func (t *Track) Filename(kind Kind, mediaFormat string) string {
 		}
 	}
 
-	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, t.Artist, t.GetTitle(), ext)
+	fileName := fmt.Sprintf("%s%s - %s.%s", prefix, t.Artist, t.FullTitle(), ext)
 	fileName, _ = filenamify.Filenamify(fileName, filenamify.Options{MaxLength: 255})
 	return fileName
 }

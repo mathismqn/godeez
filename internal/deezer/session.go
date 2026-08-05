@@ -13,7 +13,7 @@ import (
 type Session struct {
 	APIToken     string
 	LicenseToken string
-	HttpClient   *http.Client
+	HTTPClient   *http.Client
 	Premium      bool
 }
 
@@ -78,7 +78,7 @@ func authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	return &Session{
 		APIToken:     res.Results.APIToken,
 		LicenseToken: opts.LicenseToken,
-		HttpClient:   client,
+		HTTPClient:   client,
 		Premium:      opts.MobileOffline || opts.WebOffline,
 	}, nil
 }

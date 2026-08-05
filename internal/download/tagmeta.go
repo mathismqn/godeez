@@ -9,7 +9,7 @@ import (
 
 func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byte, bpm bpmKey, genre string) tag.Metadata {
 	m := tag.Metadata{
-		Title:       track.GetTitle(),
+		Title:       track.FullTitle(),
 		Artists:     strings.Join(track.Contributors.MainArtists, ", "),
 		Composers:   strings.Join(track.Contributors.Composers, ", "),
 		Lyricists:   strings.Join(track.Contributors.Authors, ", "),

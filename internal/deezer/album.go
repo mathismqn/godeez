@@ -26,11 +26,11 @@ type Album struct {
 	} `json:"results"`
 }
 
-func (a *Album) GetTitle() string {
+func (a *Album) Title() string {
 	return a.Results.Data.Title
 }
 
-func (a *Album) GetTracks() []*Track {
+func (a *Album) Tracks() []*Track {
 	return a.Results.Tracks.Data
 }
 
@@ -38,12 +38,12 @@ func (a *Album) SetTracks(t []*Track) {
 	a.Results.Tracks.Data = t
 }
 
-func (a *Album) GetOutputDir(outputDir string) string {
+func (a *Album) OutputDir(outputDir string) string {
 	base := fmt.Sprintf("%s - %s", a.Results.Data.Artist, a.Results.Data.Title)
 	base, _ = filenamify.Filenamify(base, filenamify.Options{})
 	return path.Join(outputDir, base)
 }
 
-func (a *Album) Unmarshal(data []byte) error {
+func (a *Album) decode(data []byte) error {
 	return json.Unmarshal(data, a)
 }

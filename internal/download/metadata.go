@@ -46,7 +46,7 @@ func fetchMetadata(httpClient *http.Client, ctx context.Context, track *deezer.T
 
 	if opts.Genre {
 		go func() {
-			genre, err := fetchGenre(ctx, httpClient, track.Artist, track.GetTitle())
+			genre, err := fetchGenre(ctx, httpClient, track.Artist, track.FullTitle())
 			genreChan <- genreResult{value: genre, err: err}
 		}()
 	}

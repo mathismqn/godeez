@@ -1,9 +1,9 @@
 package deezer
 
 type Resource interface {
-	GetTitle() string
-	GetTracks() []*Track
+	Title() string
+	Tracks() []*Track
 	SetTracks(tracks []*Track)
-	GetOutputDir(outputDir string) string
-	Unmarshal(data []byte) error
+	OutputDir(outputDir string) string
+	decode(data []byte) error
 }

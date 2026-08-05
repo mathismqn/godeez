@@ -11,14 +11,14 @@ type Single struct {
 	} `json:"results"`
 }
 
-func (s *Single) GetTitle() string {
+func (s *Single) Title() string {
 	if s.Results.Data == nil {
 		return ""
 	}
-	return s.Results.Data.GetTitle()
+	return s.Results.Data.FullTitle()
 }
 
-func (s *Single) GetTracks() []*Track {
+func (s *Single) Tracks() []*Track {
 	if s.Results.Data == nil {
 		return nil
 	}
@@ -27,10 +27,10 @@ func (s *Single) GetTracks() []*Track {
 
 func (s *Single) SetTracks(tracks []*Track) {}
 
-func (s *Single) GetOutputDir(outputDir string) string {
+func (s *Single) OutputDir(outputDir string) string {
 	return path.Join(outputDir, "Singles")
 }
 
-func (s *Single) Unmarshal(data []byte) error {
+func (s *Single) decode(data []byte) error {
 	return json.Unmarshal(data, s)
 }

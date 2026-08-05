@@ -83,7 +83,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 		return nil, err
 	}
 
-	resp, err := c.Session.HttpClient.Do(req)
+	resp, err := c.Session.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 		return nil, fmt.Errorf("unexpected response")
 	}
 
-	if err := resource.Unmarshal(body); err != nil {
+	if err := resource.decode(body); err != nil {
 		return nil, err
 	}
 
@@ -137,7 +137,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		return nil, err
 	}
 
-	resp, err := c.Session.HttpClient.Do(req)
+	resp, err := c.Session.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, err
 		return nil, err
 	}
 
-	resp, err := c.Session.HttpClient.Do(req)
+	resp, err := c.Session.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -198,13 +198,13 @@ func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, err
 	return io.ReadAll(resp.Body)
 }
 
-func (c *Client) GetMediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", media.GetURL(), nil)
+func (c *Client) MediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", media.URL(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	streamingClient := *c.Session.HttpClient
+	streamingClient := *c.Session.HTTPClient
 	streamingClient.Timeout = 0
 
 	resp, err := streamingClient.Do(req)

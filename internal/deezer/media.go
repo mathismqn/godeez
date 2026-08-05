@@ -18,10 +18,10 @@ type mediaError struct {
 	Message string `json:"message"`
 }
 
-func (m *Media) GetURL() string {
+func (m *Media) URL() string {
 	return m.Data[0].Media[0].Sources[0].URL
 }
 
-func (m *Media) GetFormat() string {
+func (m *Media) Format() string {
 	return m.Data[0].Media[0].Format
 }
