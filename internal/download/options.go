@@ -24,6 +24,9 @@ type Options struct {
 	Strict  bool
 }
 
+// sourceQuality is the quality to request from Deezer, which is not always
+// the quality the user asked for. Deezer does not serve wav, so a wav
+// download pulls flac and converts it locally.
 func (o *Options) sourceQuality() string {
 	if o.Quality == "wav" {
 		return "flac"
@@ -35,6 +38,9 @@ func (o *Options) convertsToWAV() bool {
 	return o.Quality == "wav"
 }
 
+// Validate checks the options against the resource kind. The limit is only
+// meaningful for artists, whose top track list is open ended, and is capped
+// at 100 because that is as many as Deezer returns.
 func (o *Options) Validate(kind deezer.Kind) error {
 	if !validQualities[o.Quality] {
 		return fmt.Errorf("invalid quality option: %s", o.Quality)

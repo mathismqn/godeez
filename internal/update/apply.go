@@ -16,6 +16,11 @@ import (
 	"github.com/mathismqn/godeez/internal/fsutil"
 )
 
+// managedPrefixes are install roots owned by a package manager. Overwriting a
+// binary there would leave the package manager's database describing a file
+// that no longer matches, and its next upgrade would silently revert the
+// self-update. Users on these installs are pointed back at their package
+// manager instead.
 var managedPrefixes = []string{
 	"/nix/store",
 	"/opt/homebrew",
@@ -25,6 +30,14 @@ var managedPrefixes = []string{
 	"/var/lib/flatpak",
 }
 
+// resolveTarget returns the binary that should be replaced, or an error
+// explaining why self-updating is not appropriate here.
+//
+// Symlinks are resolved first so the real file is replaced rather than the
+// link: package managers commonly expose a binary through a symlink, and
+// following it is what makes the managed prefix check meaningful. A build
+// that was not produced by a release is refused outright, since there is no
+// version to compare against.
 func resolveTarget() (string, error) {
 	if buildinfo.IsDev() {
 		return "", fmt.Errorf("development build cannot self-update; install a release from https://github.com/%s/%s/releases",
@@ -56,6 +69,10 @@ func CheckUpdatable() error {
 	return err
 }
 
+// checkWritable proves the install directory is writable by actually creating
+// and removing a file there. Inspecting permission bits would not account for
+// read-only mounts or the platform's own rules, and finding out only after
+// the download has finished wastes the user's time.
 func checkWritable(dir string) error {
 	f, err := os.CreateTemp(dir, tmpPattern)
 	if err != nil {
@@ -74,6 +91,14 @@ func checkWritable(dir string) error {
 	return nil
 }
 
+// Apply downloads release and replaces the running binary with it.
+//
+// The order of these steps is the safety property. The expected checksum is
+// fetched before the asset, so a release that does not publish one fails
+// before anything is downloaded. The download lands in a temporary file in
+// the install directory, which keeps the final rename on the same filesystem
+// and therefore atomic. The binary is only replaced after the checksum
+// matches, so a corrupted or tampered download can never be executed.
 func (u *Updater) Apply(ctx context.Context, release *Release) error {
 	target, err := resolveTarget()
 	if err != nil {
@@ -134,6 +159,10 @@ func (u *Updater) fetchChecksum(ctx context.Context, release *Release, assetName
 	return parseChecksums(io.LimitReader(body, maxResponseSize), assetName)
 }
 
+// parseChecksums finds the digest for name in a sha256sum style file.
+//
+// The optional "*" before the filename is the marker sha256sum uses for
+// binary mode and is not part of the name.
 func parseChecksums(r io.Reader, name string) (string, error) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -152,6 +181,9 @@ func parseChecksums(r io.Reader, name string) (string, error) {
 	return "", fmt.Errorf("no checksum listed for %s", name)
 }
 
+// download writes asset to a temporary file in dir and returns its path and
+// sha256. The hash is computed while streaming, so the file is never read a
+// second time and never has to be held in memory.
 func (u *Updater) download(ctx context.Context, dir string, asset Asset) (string, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
 	defer cancel()
@@ -184,6 +216,14 @@ func (u *Updater) download(ctx context.Context, dir string, asset Asset) (string
 	return tmp, hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// replaceBinary swaps the new binary into place.
+//
+// Unix lets a running executable be renamed over, so a single atomic rename
+// is enough. Windows locks the file of a running process, so the current
+// binary has to be moved aside first, which leaves a window where the target
+// does not exist; if installing the replacement then fails, the old one is
+// moved back. The .old file is removed on the next update rather than
+// immediately, since it is still locked while this process runs.
 func (u *Updater) replaceBinary(target, tmp string) error {
 	if runtime.GOOS != "windows" {
 		return os.Rename(tmp, target)

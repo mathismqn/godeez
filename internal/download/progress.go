@@ -112,6 +112,8 @@ Files saved to: %s
 	}
 }
 
+// showSupportMessage nudges the user to star the repository, but only on
+// roughly one run in ten.
 func (*progressTracker) showSupportMessage() {
 	if rand.Float64() < 0.1 {
 		fmt.Println("\n⭐ Enjoying GoDeez? Star it on GitHub: https://github.com/mathismqn/godeez")

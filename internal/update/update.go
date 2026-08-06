@@ -1,3 +1,10 @@
+// Package update handles both halves of keeping godeez current: the passive
+// background check that tells the user a newer release exists, and the
+// `godeez update` command that installs it.
+//
+// Releases come from the GitHub releases API. Downloads are verified against
+// the published checksums file before anything replaces the running binary,
+// and installs owned by a package manager are refused rather than overwritten.
 package update
 
 import (
@@ -11,9 +18,13 @@ import (
 )
 
 const (
+	// Timeouts are per request rather than for the whole operation, so a slow
+	// but progressing download is not killed part way. The generous download
+	// timeout covers a binary of a few tens of megabytes on a poor connection.
 	apiTimeout      = 30 * time.Second
 	downloadTimeout = 5 * time.Minute
-	tmpPattern      = ".godeez-update-*"
+
+	tmpPattern = ".godeez-update-*"
 )
 
 type Updater struct {
@@ -21,6 +32,10 @@ type Updater struct {
 	Out    io.Writer
 }
 
+// New returns an Updater that reports nothing. Callers that want the step by
+// step progress, such as the update command, set Out themselves; the
+// background check leaves it discarding so it cannot write over the download
+// output.
 func New() *Updater {
 	return &Updater{
 		client: &http.Client{},

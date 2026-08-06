@@ -38,6 +38,16 @@ func newDownloadCmd() *cobra.Command {
 	return cmd
 }
 
+// newDownloadSubCmd builds one download subcommand from a deezer.Kind. The
+// four kinds differ only in wording and in whether they take a track limit,
+// so they share this constructor rather than being written out four times.
+//
+// All four share one Options value through the parent's persistent flags,
+// which is safe because exactly one subcommand ever runs.
+//
+// A cancelled download is reported as success: the user pressed Ctrl-C and
+// has already seen the progress output, so an error on top of it would be
+// noise, and a non-zero exit would misreport a deliberate stop as a failure.
 func newDownloadSubCmd(kind deezer.Kind, opts *download.Options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   fmt.Sprintf("%s <%s_id>", kind, kind),

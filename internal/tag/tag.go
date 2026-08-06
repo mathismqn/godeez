@@ -1,3 +1,13 @@
+// Package tag writes track metadata into finished audio files.
+//
+// Every container stores metadata differently: mp3 uses ID3v2 frames, flac
+// uses Vorbis comments, and wav carries an ID3 chunk plus a RIFF LIST/INFO
+// chunk for players that read only one of the two. Write hides that behind a
+// single Metadata struct and dispatches on the file extension.
+//
+// The taggers are written for freshly downloaded files. Empty fields are
+// skipped rather than written as blanks, and each tagger writes through a
+// temporary file so a failure part way cannot corrupt the audio.
 package tag
 
 import (
@@ -8,6 +18,8 @@ import (
 	"github.com/go-flac/go-flac/v2"
 )
 
+// AlbumMetadata is the subset of tags that only make sense for a track that
+// belongs to an album. It is nil on a standalone single.
 type AlbumMetadata struct {
 	Artist              string
 	Title               string
@@ -18,6 +30,9 @@ type AlbumMetadata struct {
 	Copyright           string
 }
 
+// Metadata is the container-independent tag set. Every field is a string
+// because the underlying formats store them as text; conversions such as
+// Duration to milliseconds happen inside the individual taggers.
 type Metadata struct {
 	Title       string
 	Artists     string
@@ -38,6 +53,10 @@ type tagger interface {
 	write(m Metadata) error
 }
 
+// newTagger picks an implementation from the file extension. Anything that is
+// not mp3 or wav is attempted as flac rather than rejected, so an unexpected
+// extension fails with a parse error from the flac library instead of a
+// generic unsupported-format message.
 func newTagger(filePath string) (tagger, error) {
 	switch filepath.Ext(filePath) {
 	case ".mp3":

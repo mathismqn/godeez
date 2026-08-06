@@ -1,3 +1,6 @@
+// Package cmd defines the godeez command line: the root command and its
+// download, login, logout, update and version subcommands. It is a thin layer
+// that parses flags and delegates to the internal packages.
 package cmd
 
 import (
@@ -12,8 +15,16 @@ import (
 	"golang.org/x/term"
 )
 
+// updateNoticeAnnotation marks the commands that may print an update notice.
+// It is an annotation rather than a field because it is inherited: marking
+// the download command opts in all of its subcommands.
 const updateNoticeAnnotation = "godeez:update-notice"
 
+// Execute runs the CLI.
+//
+// The update check is started before the command and collected after it, so
+// the network round trip overlaps with work the user actually asked for
+// instead of adding to the startup time.
 func Execute(ctx context.Context) error {
 	root := newRootCmd()
 
@@ -47,6 +58,13 @@ func newRootCmd() *cobra.Command {
 	return root
 }
 
+// wantsUpdateNotice decides whether this invocation should check for updates.
+//
+// The aim is to nag only during real interactive use. Notices are suppressed
+// when stderr is not a terminal, so they cannot corrupt piped or scripted
+// output; on help output, where they are noise; on commands that only print
+// their usage; and on anything not explicitly opted in via the annotation,
+// which notably keeps `godeez version` and `godeez update` quiet.
 func wantsUpdateNotice(root *cobra.Command) bool {
 	if !term.IsTerminal(int(os.Stderr.Fd())) {
 		return false
@@ -75,6 +93,12 @@ func wantsUpdateNotice(root *cobra.Command) bool {
 	return false
 }
 
+// printUpdateNotice prints the notice only if the check has already finished.
+//
+// The non-blocking receive is the point: the command is done and the user
+// should get their prompt back, so a check that is still in flight is
+// dropped rather than waited on. A nil channel, meaning no check was started,
+// takes the same path.
 func printUpdateNotice(notice <-chan string) {
 	select {
 	case latest := <-notice:

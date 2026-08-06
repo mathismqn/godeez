@@ -49,6 +49,16 @@ func runLogin(ctx context.Context) error {
 	return nil
 }
 
+// promptCredentials reads the email and password, giving up if ctx is
+// cancelled.
+//
+// Reading stdin cannot itself be cancelled, so the read runs in a goroutine
+// and this selects on whichever finishes first. That goroutine outlives a
+// cancelled prompt, which is why the channel is buffered.
+//
+// Terminal state is captured up front and restored on cancellation: Ctrl-C
+// during the password prompt would otherwise leave echo disabled and the
+// user's shell silently typing blind.
 func promptCredentials(ctx context.Context) (string, string, error) {
 	oldState, stateErr := term.GetState(int(os.Stdin.Fd()))
 
@@ -77,6 +87,8 @@ func promptCredentials(ctx context.Context) (string, string, error) {
 	}
 }
 
+// readCredentials prompts on the terminal. The password is read with echo
+// off so it neither appears on screen nor reaches the shell history.
 func readCredentials() (string, string, error) {
 	fmt.Print("Email: ")
 	line, err := bufio.NewReader(os.Stdin).ReadString('\n')

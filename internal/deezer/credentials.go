@@ -13,12 +13,20 @@ const (
 	keyringUser    = "default"
 )
 
+// Credentials is the JSON blob stored as a single system keyring secret. The
+// password is kept alongside the ARL so an expired session can be renewed
+// without prompting; see Login. Nothing here is ever written to disk by
+// godeez itself.
 type Credentials struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	ARL      string `json:"arl,omitempty"`
 }
 
+// loadCredentials returns the stored credentials, or nil with no error when
+// the user has simply never logged in. That case is distinguished from a
+// genuine keyring failure so callers can fall back to DEEZER_ARL instead of
+// aborting.
 func loadCredentials() (*Credentials, error) {
 	secret, err := keyring.Get(keyringService, keyringUser)
 	if err != nil {
@@ -49,6 +57,8 @@ func saveCredentials(creds *Credentials) error {
 	return nil
 }
 
+// ClearCredentials removes the stored credentials. Logging out when nothing
+// is stored is not an error, so a missing entry is reported as success.
 func ClearCredentials() error {
 	if err := keyring.Delete(keyringService, keyringUser); err != nil {
 		if errors.Is(err, keyring.ErrNotFound) {

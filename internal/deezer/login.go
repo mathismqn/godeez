@@ -6,6 +6,14 @@ import (
 	"fmt"
 )
 
+// resolveARL returns a usable ARL cookie from the stored credentials, logging
+// in again if the stored one has expired.
+//
+// validate is supplied by the caller so the check can be the real
+// authentication rather than a throwaway probe. Only ErrInvalidARL triggers a
+// re-login: any other validation failure is most likely the network or Deezer
+// being down, and silently re-sending the password in that case would turn a
+// transient outage into a spurious login attempt.
 func resolveARL(ctx context.Context, validate func(ctx context.Context, arl string) error) (string, error) {
 	creds, err := loadCredentials()
 	if err != nil {
@@ -35,6 +43,12 @@ func resolveARL(ctx context.Context, validate func(ctx context.Context, arl stri
 	return "", errors.New("run 'godeez login' or export DEEZER_ARL environment variable")
 }
 
+// Login authenticates with email and password through the mobile gateway,
+// persists the credentials to the system keyring, and returns the resulting
+// ARL cookie and the account's display name.
+//
+// The password is stored, not just the ARL, because ARLs expire and renewing
+// one without prompting the user again requires replaying the login.
 func Login(ctx context.Context, email, password string) (string, string, error) {
 	client, err := newMobileClient()
 	if err != nil {

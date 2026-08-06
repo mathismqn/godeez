@@ -13,6 +13,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// Genres come from last.fm's community tags, which are free text and range
+// from real genres to things like "seen live". These two lists are the filter
+// that keeps only the useful ones. They are matched as substrings, so "deep
+// house" is caught by "house".
+//
+// The split into two lists drives the ordering in filterTags, which prefers
+// the electronic tag as the primary genre.
 var electronicKeywords = toLower([]string{
 	"Ambient", "Bass", "Big Room", "Breakbeat", "Dance", "Disco", "Downtempo",
 	"Drum And Bass", "Dub", "Dubstep", "EDM", "Electro", "Electronic", "Electronica",
@@ -44,6 +51,9 @@ func fetchGenre(ctx context.Context, httpClient *http.Client, artist, title stri
 		return "", err
 	}
 
+	// last.fm orders tags by popularity, so the first two are the consensus
+	// view. Taking more starts pulling in mood and era tags that make a poor
+	// genre field.
 	tags := parseGenreTags(doc)
 	if len(tags) > 2 {
 		tags = tags[:2]
@@ -76,6 +86,9 @@ func fetchGenrePage(ctx context.Context, httpClient *http.Client, pageURL string
 	return goquery.NewDocumentFromReader(resp.Body)
 }
 
+// parseGenreTags reads the tag list out of a last.fm page. The selector
+// tracks last.fm's current markup and is the first thing to break if they
+// redesign; a failure here is non-fatal and simply leaves the genre unset.
 func parseGenreTags(doc *goquery.Document) []string {
 	var tags []string
 	doc.Find("ol.big-tags .big-tags-item-name a").Each(func(_ int, s *goquery.Selection) {
@@ -96,6 +109,11 @@ func matchesKeyword(tag string, keywords []string) bool {
 	return false
 }
 
+// filterTags keeps only recognised genre tags, electronic ones first.
+//
+// It returns nothing at all unless at least one electronic tag matched, so a
+// purely non-electronic track ends up with no genre rather than a partial
+// one. Tags matching neither list are dropped.
 func filterTags(tags []string) []string {
 	var electronic, nonElectronic []string
 
@@ -113,6 +131,9 @@ func filterTags(tags []string) []string {
 	return electronic
 }
 
+// formatTags title cases the tags and joins them for the genre field.
+// last.fm tags arrive in whatever case the tagger typed, so they are
+// normalised rather than written through as is.
 func formatTags(tags []string) string {
 	formatted := make([]string, 0, len(tags))
 	for _, tag := range tags {

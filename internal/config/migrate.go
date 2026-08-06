@@ -6,6 +6,17 @@ import (
 	"path/filepath"
 )
 
+// MigrateLegacy moves the download ledger from the old ~/.godeez directory
+// next to the user's music, where it now lives.
+//
+// It is silent and best effort throughout. A failed migration costs the user
+// their skip history, which the next download simply rebuilds, so there is
+// nothing worth interrupting them about. An existing database at the new
+// location always wins, which makes this safe to run on every download rather
+// than needing a flag to say whether it has happened yet.
+//
+// The rename is attempted first and falls back to a copy, because the old and
+// new locations are often on different filesystems.
 func MigrateLegacy(outputDir string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

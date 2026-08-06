@@ -38,6 +38,14 @@ func newUpdateCmd() *cobra.Command {
 	return cmd
 }
 
+// runUpdate reports the current and latest versions and installs the update.
+//
+// Whether the binary can be replaced at all is checked before the network
+// call, so a package-managed install is told so straight away instead of
+// after a pointless round trip.
+//
+// The force check comes before the check-only one so that `--check --force`
+// still just reports rather than installing.
 func runUpdate(ctx context.Context, opts *updateOptions) error {
 	if err := update.CheckUpdatable(); err != nil {
 		return err

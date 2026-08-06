@@ -1,3 +1,13 @@
+// Package download drives the end to end download of a Deezer resource.
+//
+// Run fetches the resource, then walks its tracks in order: resolve a media
+// source, decide whether the track can be skipped, stream and decrypt it,
+// optionally convert to wav, write tags, and record the result in the store
+// so a later run can skip it. Tracks are processed one at a time.
+//
+// Most per-track failures are collected as warnings rather than aborting the
+// run, so an unavailable cover or a failed BPM lookup does not cost the user
+// the rest of an album. Only context cancellation stops the loop early.
 package download
 
 import (
@@ -32,6 +42,9 @@ func New(appConfig *config.Config, st *store.Store, kind deezer.Kind) *Downloade
 	}
 }
 
+// Run downloads every track of the resource identified by id. opts is
+// expected to have passed Validate already, which the cmd package does while
+// parsing flags.
 func (d *Downloader) Run(ctx context.Context, opts Options, id string) error {
 	if err := d.initDeezerClient(ctx, opts); err != nil {
 		return err
@@ -45,6 +58,14 @@ func (d *Downloader) Run(ctx context.Context, opts Options, id string) error {
 	return d.downloadAllTracks(ctx, resource, opts, outputDir)
 }
 
+// initDeezerClient authenticates and rejects quality settings the account
+// cannot serve.
+//
+// The check runs against sourceQuality rather than the raw option because wav
+// is produced locally from a flac source, so it carries the same premium
+// requirement as flac. mp3_128 is the only format available without a
+// subscription. Failing here keeps the user from watching a whole album
+// download at a silently downgraded quality.
 func (d *Downloader) initDeezerClient(ctx context.Context, opts Options) error {
 	var err error
 	d.deezerClient, err = deezer.NewClient(ctx, d.appConfig.ARLCookie)
@@ -59,6 +80,16 @@ func (d *Downloader) initDeezerClient(ctx context.Context, opts Options) error {
 	return nil
 }
 
+// prepareResource fetches the resource, applies the artist track limit, and
+// makes sure the output directory exists.
+//
+// The limit only applies to artists because that is the one kind whose track
+// list is unbounded: it is the artist's top tracks, not a finite album or
+// playlist.
+//
+// Sweeping the part files last clears leftovers from a previous run that was
+// killed mid-write. They are ignorable on their own, but they accumulate and
+// would otherwise be mistaken for real downloads.
 func (d *Downloader) prepareResource(ctx context.Context, id string, opts Options) (deezer.Resource, string, error) {
 	resource, err := d.deezerClient.FetchResource(ctx, d.kind, id)
 	if err != nil {
@@ -86,6 +117,13 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 	return resource, outputDir, nil
 }
 
+// downloadAllTracks runs the per-track pipeline over the whole resource and
+// prints the summary.
+//
+// Cancellation is checked both before each track and against the result,
+// because a track cancelled mid-stream surfaces the error through the result
+// rather than through ctx. Any other per-track error is recorded and the loop
+// continues.
 func (d *Downloader) downloadAllTracks(ctx context.Context, resource deezer.Resource, opts Options, outputDir string) error {
 	tracks := resource.Tracks()
 	startTime := time.Now()

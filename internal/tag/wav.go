@@ -25,6 +25,12 @@ type infoField struct {
 	value string
 }
 
+// write replaces the metadata chunks in a wav file.
+//
+// Both a LIST/INFO chunk and an id3 chunk are written because wav has no
+// single agreed metadata convention: older players and file managers read
+// LIST/INFO, while music libraries and DJ software expect ID3. Writing only
+// one leaves the tags invisible to half the tools people use.
 func (t *wavTagger) write(m Metadata) error {
 	id3Chunk, err := buildID3Chunk(m)
 	if err != nil {
@@ -57,6 +63,15 @@ func buildID3Chunk(m Metadata) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// buildInfoChunk assembles the LIST/INFO payload, or nil when there is
+// nothing worth writing.
+//
+// The four character ids are the RIFF INFO registry's, not arbitrary names.
+// INFO only has a year field, so a full release date is reduced to its year.
+// Values are NUL terminated because RIFF INFO strings are C strings.
+//
+// A payload of exactly 4 bytes is just the "INFO" marker with no fields
+// after it, which is why that length means empty.
 func buildInfoChunk(m Metadata) []byte {
 	fields := []infoField{
 		{"INAM", m.Title},
@@ -96,6 +111,12 @@ func buildInfoChunk(m Metadata) []byte {
 	return buf.Bytes()
 }
 
+// writeChunk writes one RIFF chunk: a four character id, the payload length
+// as a little endian uint32, then the payload.
+//
+// RIFF requires chunks to start on even offsets, so an odd length is followed
+// by a pad byte. That byte is not counted in the declared size, which is the
+// detail that makes chunk walking fiddly; see skipPad for the reading side.
 func writeChunk(w io.Writer, id string, payload []byte) {
 	header := make([]byte, 0, 8)
 	header = append(header, id...)
@@ -108,6 +129,16 @@ func writeChunk(w io.Writer, id string, payload []byte) {
 	}
 }
 
+// rewriteWAV copies path into a new file, dropping any existing metadata
+// chunks, appending the given ones, and swapping the result into place.
+//
+// A wav file cannot be edited in place: chunk sizes and the RIFF size in the
+// header would all have to shift. Rewriting is simpler and, combined with the
+// rename at the end, means an interrupted tag write leaves the original
+// untouched.
+//
+// The RIFF size field is patched at offset 4 only after everything is written,
+// since the final size is not known until then.
 func rewriteWAV(path string, chunks []wavChunk) error {
 	src, err := os.Open(path)
 	if err != nil {
@@ -174,7 +205,21 @@ func rewriteWAV(path string, chunks []wavChunk) error {
 	return nil
 }
 
+// copyChunks streams every chunk from src to dst except the metadata ones,
+// and returns the byte count that belongs in the RIFF size field.
+//
+// Dropping the existing id3 and LIST/INFO chunks here is what makes tagging
+// repeatable: the caller appends fresh ones, so tags are replaced rather than
+// accumulated. A LIST chunk that is not an INFO list is something else
+// entirely, such as an adtl annotation list, and is preserved.
+//
+// A truncated final chunk is treated as the end of the file rather than an
+// error, because trailing garbage after the audio data is common and should
+// not make the file untaggable.
 func copyChunks(dst io.Writer, src io.Reader) (int64, error) {
+	// The count starts at 4 for the "WAVE" id, which sits inside the RIFF
+	// chunk and so counts towards its size, while the 8 byte RIFF header
+	// itself does not.
 	size := int64(4)
 	head := make([]byte, 8)
 
@@ -245,6 +290,12 @@ func skipPayload(src io.Reader, payloadSize int64) error {
 	return skipPad(src, payloadSize)
 }
 
+// skipPad consumes the pad byte that follows an odd length chunk. It is not
+// included in the chunk's declared size, so skipping it is what keeps the
+// reader aligned on the next chunk header.
+//
+// A missing pad byte at the very end of the file is tolerated: some encoders
+// omit it on the last chunk.
 func skipPad(src io.Reader, payloadSize int64) error {
 	if payloadSize%2 == 0 {
 		return nil

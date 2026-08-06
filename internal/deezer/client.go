@@ -1,3 +1,15 @@
+// Package deezer talks to Deezer's private endpoints: the gw-light web API,
+// the Android mobile gateway used for email and password login, and the
+// media servers that hand out encrypted audio streams. None of it is
+// documented or supported by Deezer, so the request shapes, the error
+// markers matched in response bodies and the crypto constants in this
+// package were all derived from the official clients and can break without
+// warning.
+//
+// A Client wraps an authenticated Session and fetches a Resource, which is
+// one of Album, Playlist, Artist or Single. Audio is served Blowfish
+// encrypted; see blowfish.go for the key derivation and the download
+// package for the stripe pattern that undoes it.
 package deezer
 
 import (
@@ -15,6 +27,9 @@ type Client struct {
 	Session *Session
 }
 
+// NewClient authenticates with Deezer and returns a client bound to the
+// resulting session. An empty arlCookie falls back to the credentials held
+// in the system keyring.
 func NewClient(ctx context.Context, arlCookie string) (*Client, error) {
 	session, err := resolveSession(ctx, arlCookie)
 	if err != nil {
@@ -26,6 +41,13 @@ func NewClient(ctx context.Context, arlCookie string) (*Client, error) {
 	}, nil
 }
 
+// resolveSession authenticates with arlCookie when one is supplied, and
+// otherwise falls back to the stored credentials.
+//
+// The validate callback handed to resolveARL is the real authentication, not
+// a separate probe, so a stored ARL that still works is not sent twice.
+// session is therefore only nil here when resolveARL had to log in again to
+// mint a fresh ARL.
 func resolveSession(ctx context.Context, arlCookie string) (*Session, error) {
 	if arlCookie != "" {
 		return authenticate(ctx, arlCookie)
@@ -57,6 +79,14 @@ func resolveSession(ctx context.Context, arlCookie string) (*Session, error) {
 	return session, nil
 }
 
+// FetchResource fetches the page for the given kind and id and decodes it
+// into the matching Resource implementation.
+//
+// gw-light answers 200 even for an unknown id and reports the failure inside
+// the JSON, so bad ids have to be detected by matching markers in the body
+// rather than by reading the status code. The nb parameter is set far above
+// any real tracklist length to pull an entire resource in one request and
+// avoid paging.
 func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resource, error) {
 	resource, err := kind.newResource()
 	if err != nil {
@@ -125,6 +155,17 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	return resource, nil
 }
 
+// FetchMedia resolves a playable source URL for track at the requested
+// quality.
+//
+// Each quality maps to an ordered fallback chain, so asking for flac on a
+// track that has none yields mp3_320 instead of an error; callers compare
+// Media.Format against what they asked for to detect a downgrade. There is
+// no wav entry because Deezer does not serve wav: the download package
+// requests flac and converts locally.
+//
+// A 400 is accepted alongside 200 because the gateway uses it to return a
+// structured error payload that is more useful than the status code.
 func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
 	qualityFormats := map[string]string{
 		"mp3_128": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
@@ -199,6 +240,12 @@ func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, err
 	return io.ReadAll(resp.Body)
 }
 
+// MediaStream opens the audio stream for media. The caller owns the returned
+// body and must close it.
+//
+// The session client is copied so its timeout can be cleared for this
+// request: the session timeout is sized for short API calls and would abort
+// a long track transfer. Cancellation is left to ctx.
 func (c *Client) MediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, media.URL(), nil)
 	if err != nil {

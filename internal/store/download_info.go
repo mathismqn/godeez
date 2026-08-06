@@ -9,6 +9,10 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+// DownloadInfo records one completed download. Quality is stored so that
+// re-requesting the same track at a higher quality is not mistaken for a
+// duplicate, and Hash lets a file that has since been moved or renamed still
+// be recognised.
 type DownloadInfo struct {
 	TrackID    string    `json:"song_id"`
 	Quality    string    `json:"quality"`
@@ -19,6 +23,9 @@ type DownloadInfo struct {
 
 var trackBucket = []byte("tracks")
 
+// DownloadInfo returns the record for trackID. A track that has never been
+// downloaded is reported as an error rather than a nil result, and callers
+// treat any error the same way: download it.
 func (s *Store) DownloadInfo(trackID string) (*DownloadInfo, error) {
 	var info DownloadInfo
 

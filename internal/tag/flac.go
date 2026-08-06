@@ -45,6 +45,9 @@ func (t *flacTagger) write(m Metadata) error {
 	t.addTag("INITIALKEY", m.Key)
 
 	cmtsMeta := t.cmts.Marshal()
+	// index 0 means no comment block was found: a valid flac always starts
+	// with STREAMINFO, so a real Vorbis comment can never be the first block.
+	// Anything else is the index of the block being replaced.
 	if t.index > 0 {
 		t.file.Meta[t.index] = &cmtsMeta
 	} else {
@@ -66,6 +69,13 @@ func (t *flacTagger) write(m Metadata) error {
 	return os.Rename(tmpPath, t.path)
 }
 
+// addTag appends a Vorbis comment. Vorbis allows repeated keys, so this adds
+// to whatever the file already had rather than replacing it; re-tagging a
+// file that was already tagged would therefore duplicate entries. That does
+// not arise in practice because godeez only tags files it just downloaded.
+//
+// The key is written twice for the musical key: KEY is the common spelling
+// and INITIALKEY is what several DJ applications look for.
 func (t *flacTagger) addTag(name, value string) {
 	if value != "" {
 		t.cmts.Add(name, value)

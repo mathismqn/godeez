@@ -14,7 +14,11 @@ const (
 	repoName         = "godeez"
 	latestReleaseURL = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/releases/latest"
 	checksumsAsset   = "checksums.txt"
-	maxResponseSize  = 1 << 20
+
+	// maxResponseSize caps what is read from GitHub, so a malformed or
+	// hostile response cannot exhaust memory. Release JSON and the checksums
+	// file are both a few kilobytes.
+	maxResponseSize = 1 << 20
 )
 
 var githubAPIHeaders = map[string]string{
@@ -67,6 +71,12 @@ func (r *Release) asset(name string) (Asset, bool) {
 	return Asset{}, false
 }
 
+// assetForRuntime finds the release asset for the current platform.
+//
+// The name is reconstructed from the goreleaser naming template rather than
+// discovered, so this has to stay in step with the name_template in
+// .goreleaser.yaml: a change there breaks self-update for everyone already
+// running an older build.
 func (r *Release) assetForRuntime() (Asset, error) {
 	name := fmt.Sprintf("%s_%s_%s_%s", repoName, r.Version(), runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {

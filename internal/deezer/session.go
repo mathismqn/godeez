@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// ErrInvalidARL reports that an ARL cookie was rejected. Callers should treat
+// it as recoverable and re-login rather than as a hard failure; resolveARL
+// relies on that distinction to decide whether to renew a stored session.
 var ErrInvalidARL = errors.New("invalid or expired ARL cookie")
 
 type Session struct {
@@ -20,6 +23,17 @@ type Session struct {
 	Premium      bool
 }
 
+// authenticate exchanges an ARL cookie for a Session. It returns
+// ErrInvalidARL if the cookie is rejected.
+//
+// The endpoint answers 200 with an empty user for a bad cookie rather than an
+// error status, so a zero user id is the only reliable signal that the ARL is
+// no longer valid. A cookie jar is required because gw-light sets session
+// cookies that later calls depend on.
+//
+// Premium is inferred from the offline listening options, which are the
+// closest thing the payload carries to a subscription flag; it gates the
+// higher quality formats.
 func authenticate(ctx context.Context, arlCookie string) (*Session, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {

@@ -15,6 +15,20 @@ import (
 	"github.com/mathismqn/godeez/internal/tag"
 )
 
+// downloadTrack runs the whole pipeline for one track and reports the outcome
+// rather than returning an error, so the caller can keep going.
+//
+// Ordering matters here. The format is resolved before the skip check,
+// because whether a track counts as already downloaded depends on the format
+// that will actually be written, which is not always the one requested. The
+// external metadata lookup is started concurrently and collected late, since
+// it hits third party sites and is the slowest part of the pipeline while
+// also being the least important. Tagging and the store write happen last, in
+// finalizeDownload, once the file is known to be complete.
+//
+// Only cancellation and a failure to produce the audio itself are fatal.
+// Everything else, including a missing cover or a quality downgrade, is
+// reported as a warning.
 func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource, track *deezer.Track, opts Options, outputDir string) downloadResult {
 	media, err := d.deezerClient.FetchMedia(ctx, track, opts.sourceQuality())
 	if err != nil {
@@ -82,6 +96,9 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 
 	metadata := <-metadataChan
 
+	// Cancellation between the write and the tagging leaves a complete but
+	// untagged file. Removing it keeps a cancelled run from being mistaken
+	// for a finished one, and nothing has been recorded in the store yet.
 	if err := ctx.Err(); err != nil {
 		fsutil.Remove(outputPath)
 		return downloadResult{err: err}
@@ -93,6 +110,12 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	return downloadResult{warnings: warnings}
 }
 
+// uniqueOutputPath avoids clobbering an unrelated file by appending " (2)",
+// " (3)" and so on until the name is free.
+//
+// The file this track already owns according to the store is exempt: a
+// re-download of the same track should overwrite its own output rather than
+// pile up numbered copies next to it.
 func (d *Downloader) uniqueOutputPath(trackID, path string) string {
 	owned := ""
 	if info, err := d.store.DownloadInfo(trackID); err == nil {
@@ -109,6 +132,13 @@ func (d *Downloader) uniqueOutputPath(trackID, path string) string {
 	return candidate
 }
 
+// finalizeDownload tags the finished file and records it in the store,
+// returning any non-fatal problems as warnings.
+//
+// The hash is taken after tagging so it matches the bytes actually on disk,
+// which is what the skip check later compares against. The download is
+// recorded even when tagging or hashing failed: the audio is there, and
+// refusing to record it would mean downloading it all over again next time.
 func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Track, outputPath, outputFormat, genre string, cover []byte, bpmKey bpmKey) []string {
 	var warnings []string
 

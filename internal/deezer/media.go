@@ -18,6 +18,11 @@ type mediaError struct {
 	Message string `json:"message"`
 }
 
+// URL and Format read the first source Deezer offered, which is the best one
+// available for the requested quality. Both index without checking because
+// FetchMedia has already rejected empty and error responses; do not call them
+// on a Media obtained any other way.
+
 func (m *Media) URL() string {
 	return m.Data[0].Media[0].Sources[0].URL
 }

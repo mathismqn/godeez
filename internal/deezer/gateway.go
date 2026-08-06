@@ -20,9 +20,18 @@ import (
 const (
 	gatewayBaseURL   = "https://api.deezer.com/1.0/gateway.php"
 	gatewayUserAgent = "Deezer/6.1.22.49 (Android; 9; Tablet; us) innotek GmbH VirtualBox"
-	nonceAlphabet    = "012345689abdef"
+
+	// nonceAlphabet omits '7' and 'c' on purpose. It mirrors the alphabet the
+	// Android client uses to build its uniq_id, and the gateway is picky about
+	// the shape of that value, so this must not be "completed" into a full hex
+	// alphabet.
+	nonceAlphabet = "012345689abdef"
 )
 
+// The gateway only answers requests that look like they come from the Android
+// app, so these describe a plausible device. They are deliberately generic
+// rather than derived from the user's real machine: nothing here should
+// identify the person running godeez.
 const (
 	deviceOS       = "Android"
 	deviceName     = "VirtualBox"
@@ -39,11 +48,22 @@ type mobileClient struct {
 	sid        string
 }
 
+// CheckGatewayEnv reports whether the mobile gateway keys are present and
+// well formed. It exists so the login command can fail immediately with a
+// clear message instead of prompting for a password it cannot use.
 func CheckGatewayEnv() error {
 	_, _, err := gatewayEnv()
 	return err
 }
 
+// gatewayEnv reads the two mobile gateway keys from the environment.
+//
+// They are not shipped with godeez: they are Deezer's, and baking them into a
+// public repository would be both a licensing problem and a fast route to
+// having them revoked. Users who want email and password login supply their
+// own, which is why this is the one feature gated behind environment
+// variables. The gateway key doubles as an AES key, hence the exact length
+// requirement.
 func gatewayEnv() (string, string, error) {
 	apiKey := os.Getenv("DEEZER_MOBILE_API_KEY")
 	gwKey := os.Getenv("DEEZER_MOBILE_GW_KEY")
@@ -71,6 +91,14 @@ func newMobileClient() (*mobileClient, error) {
 	}, nil
 }
 
+// login runs the three step mobile handshake and returns the resulting
+// credentials plus the account's display name.
+//
+// The steps are ordered and stateful, so none of them can be skipped or
+// reordered: authenticate yields a token and two one-shot AES keys,
+// checkToken trades the token for a session id that gatewayRequest then
+// attaches to every later call, and only then will userAuth accept the
+// encrypted password and return an ARL.
 func (m *mobileClient) login(ctx context.Context, email, password string) (*Credentials, string, error) {
 	token, tokenKey, userKey, err := m.authenticate(ctx)
 	if err != nil {
@@ -89,6 +117,16 @@ func (m *mobileClient) login(ctx context.Context, email, password string) (*Cred
 	return &Credentials{Email: email, Password: password, ARL: arl}, username, nil
 }
 
+// authenticate performs the first handshake step and returns the session
+// token, the key used to sign it back in checkToken, and the key used to
+// encrypt the password in userAuth.
+//
+// The gateway packs all three into one hex blob encrypted under the gateway
+// key, at fixed offsets: 64 bytes of token, then two 16 byte keys. The length
+// check guards against a short or error response being sliced blindly.
+//
+// Errors arrive with a 200 status and are only visible as markers in the
+// body, so they are matched as strings.
 func (m *mobileClient) authenticate(ctx context.Context) (string, string, string, error) {
 	body, err := m.gatewayRequest(ctx, "mobile_auth", http.MethodGet, "uniq_id", genUniqID(), nil)
 	if err != nil {
@@ -132,6 +170,9 @@ func (m *mobileClient) authenticate(ctx context.Context) (string, string, string
 	return token, tokenKey, userKey, nil
 }
 
+// checkToken proves possession of the token by returning it encrypted under
+// tokenKey, and stores the session id the gateway hands back. Every
+// subsequent request carries that id, so userAuth fails without this step.
 func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) error {
 	encrypted, err := ecbEncrypt([]byte(tokenKey), []byte(token))
 	if err != nil {
@@ -158,6 +199,12 @@ func (m *mobileClient) checkToken(ctx context.Context, token, tokenKey string) e
 	return nil
 }
 
+// userAuth exchanges the user's credentials for an ARL cookie and returns it
+// along with the account's display name.
+//
+// The password is sent AES-ECB encrypted under userKey rather than in the
+// clear. The empty and constant fields in the payload are not padding: the
+// gateway rejects the request outright if any of them are missing.
 func (m *mobileClient) userAuth(ctx context.Context, email, password, userKey string) (string, string, error) {
 	encryptedPassword, err := ecbEncrypt([]byte(userKey), zeroPad([]byte(password)))
 	if err != nil {
@@ -259,6 +306,9 @@ func (m *mobileClient) gatewayRequest(ctx context.Context, method, httpMethod, p
 	return io.ReadAll(resp.Body)
 }
 
+// genUniqID builds the 32 character device identifier sent with the first
+// handshake request. It is regenerated per login on purpose, so that repeated
+// logins are not linkable to one another by a stable device id.
 func genUniqID() string {
 	b := make([]byte, 32)
 	for i := range b {

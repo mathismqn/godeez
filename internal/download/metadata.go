@@ -20,6 +20,14 @@ type metadataResult struct {
 	warnings []string
 }
 
+// fetchMetadata looks up BPM, key and genre from third party sites, running
+// the two lookups concurrently since neither depends on the other.
+//
+// Both channels are buffered so a goroutine whose result is never collected
+// still exits instead of blocking forever. Failures become warnings rather
+// than errors: these are nice to have tags, and a site being down should not
+// cost the user the track. Cancellation is silent, because the run is already
+// being torn down and a warning per track would just be noise.
 func fetchMetadata(ctx context.Context, httpClient *http.Client, track *deezer.Track, opts Options) metadataResult {
 	if !opts.BPM && !opts.Genre {
 		return metadataResult{}

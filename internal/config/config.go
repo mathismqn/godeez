@@ -1,3 +1,8 @@
+// Package config resolves where godeez reads its session from and writes its
+// downloads to. There is no config file: the output directory is fixed and
+// the only setting is the DEEZER_ARL environment variable, which exists as an
+// escape hatch for users who would rather not store credentials in the system
+// keyring.
 package config
 
 import (
@@ -13,6 +18,12 @@ type Config struct {
 	OutputDir string
 }
 
+// Load resolves the configuration and creates the output directory.
+//
+// An empty ARLCookie is normal and not an error: it means fall back to the
+// stored credentials, which is the usual path. Creating the directory here
+// rather than at first write means a bad path fails immediately instead of
+// after the first track has been fetched.
 func Load() (*Config, error) {
 	arl := os.Getenv("DEEZER_ARL")
 
