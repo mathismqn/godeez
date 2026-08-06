@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/mathismqn/godeez)](https://github.com/mathismqn/godeez/blob/main/LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/mathismqn/godeez)](https://github.com/mathismqn/godeez/commits/main)
 
-A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
+Download music from [Deezer](https://www.deezer.com) in MP3 or lossless FLAC/WAV.
 
 [Features](#features) •
 [Installation](#installation) •
@@ -19,7 +19,7 @@ A simple Go tool for downloading music from [Deezer](https://www.deezer.com).
 ## Features
 
 - Download playlists, albums, artists' top tracks, and individual tracks
-- Choose audio quality: MP3 128 kbps, MP3 320 kbps (default), or lossless FLAC/WAV (⚠️ non-premium accounts are limited to 128 kbps)
+- Choose audio quality: MP3 128 kbps, MP3 320 kbps (default), or lossless FLAC/WAV (⚠️ non-premium accounts are limited to MP3 128 kbps)
 - Authenticate with an ARL cookie or with your Deezer email and password
 - Automatically embed metadata tags (artist, album, title, artwork, etc.)
 - Fetch and tag tracks with BPM, musical key, and genre
