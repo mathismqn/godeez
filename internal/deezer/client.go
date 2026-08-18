@@ -155,8 +155,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	return resource, nil
 }
 
-// FetchMedia resolves a playable source URL for track at the requested
-// quality.
+// FetchMedia resolves track to playable media at the requested quality.
 //
 // Each quality maps to an ordered fallback chain, so asking for flac on a
 // track that has none yields mp3_320 instead of an error; callers compare
@@ -167,13 +166,17 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 // A 400 is accepted alongside 200 because the gateway uses it to return a
 // structured error payload that is more useful than the status code.
 func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
-	qualityFormats := map[string]string{
-		"mp3_128": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
-		"mp3_320": `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
-		"flac":    `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`,
+	var formats string
+	switch quality {
+	case "mp3_128":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
+	case "mp3_320":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
+	case "flac":
+		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
 	}
 
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.licenseToken, qualityFormats[quality], track.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.licenseToken, formats, track.TrackToken)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
@@ -194,30 +197,30 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		return nil, err
 	}
 
-	var media Media
-	if err := json.Unmarshal(body, &media); err != nil {
+	var res mediaResponse
+	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, err
 	}
 
-	if len(media.Errors) > 0 {
-		if media.Errors[0].Code == 1000 {
+	if len(res.Errors) > 0 {
+		if res.Errors[0].Code == 1000 {
 			return nil, errors.New("invalid license token")
 		}
-		return nil, errors.New(media.Errors[0].Message)
+		return nil, errors.New(res.Errors[0].Message)
 	}
 
-	if len(media.Data) > 0 && len(media.Data[0].Errors) > 0 {
-		if media.Data[0].Errors[0].Code == 2002 {
+	if len(res.Data) > 0 && len(res.Data[0].Errors) > 0 {
+		if res.Data[0].Errors[0].Code == 2002 {
 			return nil, errors.New("invalid track token")
 		}
-		return nil, errors.New(media.Data[0].Errors[0].Message)
+		return nil, errors.New(res.Data[0].Errors[0].Message)
 	}
 
-	if len(media.Data) == 0 || len(media.Data[0].Media) == 0 || len(media.Data[0].Media[0].Sources) == 0 {
+	if len(res.Data) == 0 || len(res.Data[0].Media) == 0 || len(res.Data[0].Media[0].Sources) == 0 {
 		return nil, errors.New("no sources found")
 	}
 
-	return &media, nil
+	return newMedia(track.ID, &res), nil
 }
 
 func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, error) {
@@ -241,13 +244,13 @@ func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, err
 }
 
 // MediaStream opens the audio stream for media. The caller owns the returned
-// body and must close it.
+// body and must close it, and decrypt it with media.Key.
 //
 // The session client is copied so its timeout can be cleared for this
 // request: the session timeout is sized for short API calls and would abort
 // a long track transfer. Cancellation is left to ctx.
 func (c *Client) MediaStream(ctx context.Context, media *Media) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, media.URL(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, media.url, nil)
 	if err != nil {
 		return nil, err
 	}

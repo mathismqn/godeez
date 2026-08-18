@@ -67,8 +67,8 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 
 	fileName := track.Filename(d.kind, outputFormat)
 	outputPath := d.uniqueOutputPath(track.ID, filepath.Join(outputDir, fileName))
+	key := media.Key()
 
-	key := deezer.BlowfishKey(track.ID)
 	if opts.convertsToWAV() {
 		tmpPath, err := d.streamToTempFile(dlCtx, stream, outputDir, key)
 		if err != nil {

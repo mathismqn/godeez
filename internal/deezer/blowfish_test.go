@@ -20,15 +20,15 @@ func TestBlowfishKey(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := hex.EncodeToString(BlowfishKey(tt.trackID))
+		got := hex.EncodeToString(blowfishKey(tt.trackID))
 		if got != tt.want {
-			t.Errorf("BlowfishKey(%q) = %s, want %s", tt.trackID, got, tt.want)
+			t.Errorf("blowfishKey(%q) = %s, want %s", tt.trackID, got, tt.want)
 		}
 	}
 }
 
 func TestDecryptBlowfishRoundTrip(t *testing.T) {
-	key := BlowfishKey("3135556")
+	key := blowfishKey("3135556")
 	plaintext := bytes.Repeat([]byte("01234567"), 16)
 
 	block, err := blowfish.NewCipher(key)

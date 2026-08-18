@@ -11,21 +11,21 @@ import (
 // blowfishIV and blowfishSecretKey are Deezer's own constants, not values
 // chosen by this project. They are the same for every user and every track,
 // and are widely published; the per-track key derived from them in
-// BlowfishKey is what actually varies. Changing either one simply produces
+// blowfishKey is what actually varies. Changing either one simply produces
 // audio that will not decode.
 var (
 	blowfishIV        = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}
 	blowfishSecretKey = []byte("g4el58wc0zvf9na1")
 )
 
-// BlowfishKey derives the per-track decryption key for trackID.
+// blowfishKey derives the per-track decryption key for trackID.
 //
 // Deezer takes the MD5 of the track ID as a 32 character hex string and folds
 // its two halves back into the 16 byte secret, XORing byte i of the secret
 // with hex digits i and i+16. The loop therefore runs over the 16 bytes of
 // the raw digest, not the 32 characters of its hex encoding, and the result
 // is the same 16 byte length as the secret.
-func BlowfishKey(trackID string) []byte {
+func blowfishKey(trackID string) []byte {
 	hash := md5.Sum([]byte(trackID))
 	hashHex := hex.EncodeToString(hash[:])
 
