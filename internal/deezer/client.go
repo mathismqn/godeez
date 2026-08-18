@@ -155,6 +155,11 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	return resource, nil
 }
 
+// errTrackUnavailable is media error code 2002. The track token is not
+// malformed and the session is fine: the media server is refusing this entry
+// because it carries no streaming rights.
+var errTrackUnavailable = errors.New("track is not available for streaming")
+
 // FetchMedia resolves track to playable media at the requested quality.
 //
 // Each quality maps to an ordered fallback chain, so asking for flac on a
@@ -211,7 +216,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 
 	if len(res.Data) > 0 && len(res.Data[0].Errors) > 0 {
 		if res.Data[0].Errors[0].Code == 2002 {
-			return nil, errors.New("invalid track token")
+			return nil, errTrackUnavailable
 		}
 		return nil, errors.New(res.Data[0].Errors[0].Message)
 	}
