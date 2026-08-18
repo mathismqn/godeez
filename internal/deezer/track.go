@@ -42,6 +42,10 @@ type Track struct {
 	ISRC         string       `json:"ISRC"`
 	TrackNumber  string       `json:"TRACK_NUMBER"`
 	TrackToken   string       `json:"TRACK_TOKEN"`
+
+	// Fallback is the readable duplicate Deezer points at when this entry
+	// has no streaming rights of its own.
+	Fallback *Track `json:"FALLBACK"`
 }
 
 func (t *Track) FullTitle() string {

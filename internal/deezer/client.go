@@ -10,6 +10,9 @@
 // one of Album, Playlist, Artist or Single. Audio is served Blowfish
 // encrypted; see blowfish.go for the key derivation and the download
 // package for the stripe pattern that undoes it.
+//
+// Entries with no streaming rights of their own are resolved to a verified
+// duplicate rather than failing; see fallback.go.
 package deezer
 
 import (
@@ -162,6 +165,37 @@ var errTrackUnavailable = errors.New("track is not available for streaming")
 
 // FetchMedia resolves track to playable media at the requested quality.
 //
+// An entry with no streaming rights of its own is played from a verified
+// duplicate when Deezer publishes one, so the returned Media may carry a
+// different track id than the one asked for. The substitution is silent
+// because the recording is the same, proven by ISRC and duration; only the
+// bytes come from elsewhere.
+func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
+	res, err := c.fetchMediaForToken(ctx, track.TrackToken, quality)
+	if err == nil {
+		return newMedia(track.ID, res), nil
+	}
+
+	if !errors.Is(err, errTrackUnavailable) {
+		return nil, err
+	}
+
+	if media := c.resolveFallback(ctx, track, quality); media != nil {
+		return media, nil
+	}
+
+	// resolveFallback reports every failure the same way, so a cancelled
+	// lookup would otherwise surface as an unavailable track and let the
+	// download loop keep going after an interrupt.
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, ctxErr
+	}
+
+	return nil, err
+}
+
+// fetchMediaForToken performs the get_url call for a single track token.
+//
 // Each quality maps to an ordered fallback chain, so asking for flac on a
 // track that has none yields mp3_320 instead of an error; callers compare
 // Media.Format against what they asked for to detect a downgrade. There is
@@ -170,7 +204,10 @@ var errTrackUnavailable = errors.New("track is not available for streaming")
 //
 // A 400 is accepted alongside 200 because the gateway uses it to return a
 // structured error payload that is more useful than the status code.
-func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
+//
+// The fallback resolver retries this call with another token, so it must
+// stay free of fallback logic of its own or the two would recurse.
+func (c *Client) fetchMediaForToken(ctx context.Context, trackToken, quality string) (*mediaResponse, error) {
 	var formats string
 	switch quality {
 	case "mp3_128":
@@ -181,7 +218,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		formats = `[{"cipher":"BF_CBC_STRIPE","format":"FLAC"},{"cipher":"BF_CBC_STRIPE","format":"MP3_320"},{"cipher":"BF_CBC_STRIPE","format":"MP3_128"}]`
 	}
 
-	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.licenseToken, formats, track.TrackToken)
+	reqBody := fmt.Sprintf(`{"license_token":"%s","media":[{"type":"FULL","formats":%s}],"track_tokens":["%s"]}`, c.Session.licenseToken, formats, trackToken)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://media.deezer.com/v1/get_url", bytes.NewBuffer([]byte(reqBody)))
 	if err != nil {
 		return nil, err
@@ -225,7 +262,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		return nil, errors.New("no sources found")
 	}
 
-	return newMedia(track.ID, &res), nil
+	return &res, nil
 }
 
 func (c *Client) FetchCoverImage(ctx context.Context, track *Track) ([]byte, error) {
