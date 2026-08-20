@@ -173,8 +173,8 @@ var errTrackUnavailable = errors.New("track is not available for streaming")
 // An entry with no streaming rights of its own is played from a verified
 // duplicate when Deezer publishes one, so the returned Media may carry a
 // different track id than the one asked for. The substitution is silent
-// because the recording is the same, proven by ISRC and duration; only the
-// bytes come from elsewhere.
+// because the recording is the same, checked against the original's artist,
+// title and duration; only the bytes come from elsewhere.
 func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
 	res, err := c.fetchMediaForToken(ctx, track.TrackToken, quality)
 	if err == nil {

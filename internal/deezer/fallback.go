@@ -21,30 +21,33 @@ const maxFallbackDepth = 3
 const durationToleranceSec = 1
 
 // resolveFallback returns the media of a verified stand-in for track, or nil
-// when none can be proved equivalent.
+// when none can be verified.
 //
 // Two places are tried in order: the FALLBACK object Deezer embeds in the
 // response, then the track's ISRC on the public API, which finds duplicates
-// Deezer did not link.
+// Deezer did not link. Each is verified by the rule its source has earned:
+// Deezer linked the first itself, while the second is only a match this
+// package found; see linkedStandIn and sameRecording.
 //
 // The caller keeps the original entry's metadata, so a recovered track can
 // carry the GAIN of a different release of the same recording. Taking the
 // stand-in's metadata instead would mean the wrong cover and track number.
 func (c *Client) resolveFallback(ctx context.Context, track *Track, quality string) *Media {
-	// Without an ISRC there is no way to prove a candidate is the same
-	// recording, so refuse before spending a single request.
-	if normalizeISRC(track.ISRC) == "" {
-		return nil
-	}
-
 	// seen keeps the ISRC lookup from re-offering a candidate the embedded
 	// walk has already turned down.
 	seen := map[string]bool{track.ID: true}
 
 	for _, candidate := range embeddedCandidates(track, maxFallbackDepth, seen) {
-		if media := c.mediaFrom(ctx, track, candidate, quality); media != nil {
+		if media := c.mediaFrom(ctx, track, candidate, quality, linkedStandIn); media != nil {
 			return media
 		}
+	}
+
+	// Past this point nothing is curated, and the ISRC is both the only way
+	// to search and the only way to verify what comes back. Without one
+	// there is nothing to spend a request on.
+	if normalizeISRC(track.ISRC) == "" {
+		return nil
 	}
 
 	id := c.lookupByISRC(ctx, track.ISRC)
@@ -65,18 +68,20 @@ func (c *Client) resolveFallback(ctx context.Context, track *Track, quality stri
 		return nil
 	}
 
-	return c.mediaFrom(ctx, track, tracks[0], quality)
+	return c.mediaFrom(ctx, track, tracks[0], quality, sameRecording)
 }
 
-// mediaFrom returns the media of candidate when it is provably a stand-in for
-// original, or nil when it is not or cannot be played.
+// mediaFrom returns the media of candidate when verify accepts it as a
+// stand-in for original, or nil when it does not or the candidate cannot be
+// played.
 //
-// Candidates are verified against original, never against their parent in the
-// fallback chain, which would let identity drift one hop at a time. This is
-// also the only place a candidate becomes a Media, so the id paired with the
-// audio is always the id whose token fetched it.
-func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, quality string) *Media {
-	if !sameRecording(original, candidate) {
+// verify differs by where the candidate came from: see linkedStandIn and
+// sameRecording. Candidates are always verified against original, never
+// against their parent in the fallback chain, which would let identity drift
+// one hop at a time. This is also the only place a candidate becomes a Media,
+// so the id paired with the audio is always the id whose token fetched it.
+func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, quality string, verify func(original, candidate *Track) bool) *Media {
+	if !verify(original, candidate) {
 		return nil
 	}
 
@@ -169,6 +174,28 @@ func parseISRCLookup(body []byte) string {
 	return id
 }
 
+// linkedStandIn reports whether candidate is an acceptable stand-in for
+// original.
+//
+// The ISRC is deliberately not required to match. A re-release, or a change
+// of distributor, is registered under a new ISRC while staying the same
+// master, and Deezer keeps pointing FALLBACK at it; requiring identical codes
+// would reject entries the official client plays. Artist, title and duration
+// are checked instead, which is what keeps a live take or a radio edit from
+// passing as the album cut. A remaster of the same title and length still
+// passes: nothing in the payload tells it apart from the original master.
+func linkedStandIn(original, candidate *Track) bool {
+	if !playableAlternative(original, candidate) {
+		return false
+	}
+
+	if !strings.EqualFold(original.Artist, candidate.Artist) || !strings.EqualFold(original.FullTitle(), candidate.FullTitle()) {
+		return false
+	}
+
+	return sameDuration(original, candidate)
+}
+
 // sameRecording reports whether candidate is provably the same recording as
 // original.
 //
@@ -177,7 +204,7 @@ func parseISRCLookup(body []byte) string {
 // two. The ISRC is the identity. Duration is a second opinion, there to catch
 // the case where a catalogue error puts one ISRC on two different masters.
 func sameRecording(original, candidate *Track) bool {
-	if candidate == nil || candidate.ID == "" || candidate.ID == original.ID || candidate.TrackToken == "" {
+	if !playableAlternative(original, candidate) {
 		return false
 	}
 
@@ -186,6 +213,22 @@ func sameRecording(original, candidate *Track) bool {
 		return false
 	}
 
+	return sameDuration(original, candidate)
+}
+
+// playableAlternative reports whether candidate is a distinct entry that
+// could be played at all. Both verification rules start here: comparing
+// metadata is pointless for an entry that is the original itself, or that
+// carries no token to fetch audio with.
+func playableAlternative(original, candidate *Track) bool {
+	return candidate != nil && candidate.ID != "" && candidate.ID != original.ID && candidate.TrackToken != ""
+}
+
+// sameDuration reports whether the two entries agree on duration within
+// durationToleranceSec. A duration that is missing or does not parse fails
+// the check rather than passing it, since both callers rely on length to tell
+// the album cut from another edit of the same song.
+func sameDuration(original, candidate *Track) bool {
 	originalDuration, err := strconv.Atoi(original.Duration)
 	if err != nil || originalDuration <= 0 {
 		return false
