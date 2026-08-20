@@ -172,8 +172,10 @@ func parseISRCLookup(body []byte) string {
 // sameRecording reports whether candidate is provably the same recording as
 // original.
 //
-// The ISRC is the identity. Duration is a second opinion, there to catch the
-// case where a catalogue error puts one ISRC on two different masters.
+// This is the rule for a candidate found by searching the public API rather
+// than followed from a link, where nothing but the code itself connects the
+// two. The ISRC is the identity. Duration is a second opinion, there to catch
+// the case where a catalogue error puts one ISRC on two different masters.
 func sameRecording(original, candidate *Track) bool {
 	if candidate == nil || candidate.ID == "" || candidate.ID == original.ID || candidate.TrackToken == "" {
 		return false

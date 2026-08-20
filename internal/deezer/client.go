@@ -158,9 +158,14 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	return resource, nil
 }
 
-// errTrackUnavailable is media error code 2002. The track token is not
-// malformed and the session is fine: the media server is refusing this entry
-// because it carries no streaming rights.
+// errTrackUnavailable reports that the media server refused an entry because
+// it carries no streaming rights. The track token is not malformed and the
+// session is fine.
+//
+// Deezer says this two ways and fetchMediaForToken maps both onto this one
+// sentinel: media error code 2002, and a 200 whose media array is empty. A
+// third way belongs here too, since this is what FetchMedia tests before it
+// looks for a stand-in.
 var errTrackUnavailable = errors.New("track is not available for streaming")
 
 // FetchMedia resolves track to playable media at the requested quality.
@@ -258,7 +263,17 @@ func (c *Client) fetchMediaForToken(ctx context.Context, trackToken, quality str
 		return nil, errors.New(res.Data[0].Errors[0].Message)
 	}
 
-	if len(res.Data) == 0 || len(res.Data[0].Media) == 0 || len(res.Data[0].Media[0].Sources) == 0 {
+	if len(res.Data) == 0 {
+		return nil, errors.New("no sources found")
+	}
+
+	// The empty media array is the second way a track with no streaming
+	// rights is refused; see errTrackUnavailable.
+	if len(res.Data[0].Media) == 0 {
+		return nil, errTrackUnavailable
+	}
+
+	if len(res.Data[0].Media[0].Sources) == 0 {
 		return nil, errors.New("no sources found")
 	}
 
