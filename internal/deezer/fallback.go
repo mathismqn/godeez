@@ -14,11 +14,20 @@ import (
 // level in practice, so this is slack rather than a budget.
 const maxFallbackDepth = 3
 
-// durationToleranceSec is how far two Deezer records of the same recording
-// are allowed to disagree. DURATION is an integer rounding produced
-// separately by each catalogue ingest, so one master can read 163 on one
-// entry and 164 on another.
+// durationToleranceSec is how far two records of the same recording are
+// allowed to disagree once their ISRCs already match. DURATION is an integer
+// rounding produced separately by each catalogue ingest, so one master can
+// read 163 on one entry and 164 on another.
 const durationToleranceSec = 1
+
+// linkedDurationToleranceSec is the wider window used for a candidate Deezer
+// linked itself, where duration is not a second opinion on a matching ISRC
+// but the only check on which version the link leads to. Two ingests of one
+// master disagree by more than a rounding when one trims a fade or a lead-in
+// the other keeps, and rejecting those would fail tracks the official client
+// plays. It still stays well short of a different edit: a radio edit runs
+// tens of seconds short, an extended mix minutes long.
+const linkedDurationToleranceSec = 5
 
 // resolveFallback returns the media of a verified stand-in for track, or nil
 // when none can be verified.
@@ -181,9 +190,11 @@ func parseISRCLookup(body []byte) string {
 // of distributor, is registered under a new ISRC while staying the same
 // master, and Deezer keeps pointing FALLBACK at it; requiring identical codes
 // would reject entries the official client plays. Artist, title and duration
-// are checked instead, which is what keeps a live take or a radio edit from
-// passing as the album cut. A remaster of the same title and length still
-// passes: nothing in the payload tells it apart from the original master.
+// are checked instead, against the wider of the two windows, since here
+// duration is the version check rather than a rounding check. That is what
+// keeps a live take or a radio edit from passing as the album cut. A remaster
+// of the same title and length still passes: nothing in the payload tells it
+// apart from the original master.
 func linkedStandIn(original, candidate *Track) bool {
 	if !playableAlternative(original, candidate) {
 		return false
@@ -193,7 +204,7 @@ func linkedStandIn(original, candidate *Track) bool {
 		return false
 	}
 
-	return sameDuration(original, candidate)
+	return sameDuration(original, candidate, linkedDurationToleranceSec)
 }
 
 // sameRecording reports whether candidate is provably the same recording as
@@ -213,7 +224,7 @@ func sameRecording(original, candidate *Track) bool {
 		return false
 	}
 
-	return sameDuration(original, candidate)
+	return sameDuration(original, candidate, durationToleranceSec)
 }
 
 // playableAlternative reports whether candidate is a distinct entry that
@@ -225,10 +236,11 @@ func playableAlternative(original, candidate *Track) bool {
 }
 
 // sameDuration reports whether the two entries agree on duration within
-// durationToleranceSec. A duration that is missing or does not parse fails
-// the check rather than passing it, since both callers rely on length to tell
-// the album cut from another edit of the same song.
-func sameDuration(original, candidate *Track) bool {
+// toleranceSec, which each caller sets to what its other checks leave for
+// this one to prove. A duration that is missing or does not parse fails the
+// check rather than passing it, since both callers rely on length to tell the
+// album cut from another edit of the same song.
+func sameDuration(original, candidate *Track, toleranceSec int) bool {
 	originalDuration, err := strconv.Atoi(original.Duration)
 	if err != nil || originalDuration <= 0 {
 		return false
@@ -239,7 +251,7 @@ func sameDuration(original, candidate *Track) bool {
 		return false
 	}
 
-	return max(originalDuration-candidateDuration, candidateDuration-originalDuration) <= durationToleranceSec
+	return max(originalDuration-candidateDuration, candidateDuration-originalDuration) <= toleranceSec
 }
 
 // isrcSeparators strips the punctuation catalogue entries sprinkle through an

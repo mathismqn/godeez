@@ -160,8 +160,23 @@ func TestLinkedStandIn(t *testing.T) {
 			want:      true,
 		},
 		{
-			name:      "duration off by two is a different edit",
+			name:      "duration off by two is a trimmed fade",
 			candidate: with(func(c *Track) { c.Duration = "215" }),
+			want:      true,
+		},
+		{
+			name:      "duration off by five is the edge of the window",
+			candidate: with(func(c *Track) { c.Duration = "208" }),
+			want:      true,
+		},
+		{
+			name:      "duration off by six is a different edit",
+			candidate: with(func(c *Track) { c.Duration = "219" }),
+			want:      false,
+		},
+		{
+			name:      "a radio edit of the same song",
+			candidate: with(func(c *Track) { c.Duration = "178" }),
 			want:      false,
 		},
 		{
