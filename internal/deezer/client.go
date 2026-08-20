@@ -189,9 +189,9 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		return media, nil
 	}
 
-	// resolveFallback reports every failure the same way, so a cancelled
-	// lookup would otherwise surface as an unavailable track and let the
-	// download loop keep going after an interrupt.
+	// resolveFallback reports every failure the same way, so a candidate
+	// fetch cancelled mid-flight would otherwise surface as an unavailable
+	// track and let the download loop keep going after an interrupt.
 	if ctxErr := ctx.Err(); ctxErr != nil {
 		return nil, ctxErr
 	}
