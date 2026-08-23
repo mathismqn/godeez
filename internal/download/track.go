@@ -65,7 +65,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 		return downloadResult{err: fmt.Errorf("failed to get media stream: %w", err)}
 	}
 
-	fileName := track.Filename(d.kind, outputFormat)
+	fileName := trackFilename(track, d.kind, outputFormat)
 	outputPath := d.uniqueOutputPath(track.ID, filepath.Join(outputDir, fileName))
 	key := media.Key()
 
