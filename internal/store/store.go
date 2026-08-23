@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"go.etcd.io/bbolt"
@@ -39,4 +40,40 @@ func Open(dir string) (*Store, error) {
 
 func (s *Store) Close() error {
 	return s.db.Close()
+}
+
+var metaBucket = []byte("meta")
+var versionKey = []byte("version")
+
+// Version reports the version stamped on the ledger, which is 0 until a
+// migration sets one. The store only keeps the number; what it means belongs
+// to whichever migration stamped it. An unreadable marker reports 0, since a
+// redundant migration is cheaper than a skipped one.
+func (s *Store) Version() int {
+	version := 0
+
+	_ = s.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket(metaBucket)
+		if b == nil {
+			return nil
+		}
+
+		if v, err := strconv.Atoi(string(b.Get(versionKey))); err == nil {
+			version = v
+		}
+		return nil
+	})
+
+	return version
+}
+
+func (s *Store) SetVersion(version int) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists(metaBucket)
+		if err != nil {
+			return fmt.Errorf("failed to create bucket: %w", err)
+		}
+
+		return b.Put(versionKey, []byte(strconv.Itoa(version)))
+	})
 }
