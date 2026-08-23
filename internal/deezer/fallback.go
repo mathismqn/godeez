@@ -2,6 +2,7 @@ package deezer
 
 import (
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -31,7 +32,9 @@ const durationToleranceSec = 5
 //
 // The caller keeps the original entry's metadata, so a recovered track can
 // carry the GAIN of a different release of the same recording. Taking the
-// stand-in's metadata instead would mean the wrong cover and track number.
+// stand-in's metadata instead would mean the wrong track number. The cover is
+// the one thing borrowed from it, and only when the original has none; see
+// coverCandidates.
 func (c *Client) resolveFallback(ctx context.Context, track *Track, quality string) *Media {
 	for _, candidate := range embeddedCandidates(track, maxFallbackDepth) {
 		if media := c.mediaFrom(ctx, track, candidate, quality); media != nil {
@@ -60,6 +63,31 @@ func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, qual
 	}
 
 	return newMedia(candidate.ID, res)
+}
+
+// coverCandidates returns the cover ids worth trying for track, best first:
+// its own, then those of the stand-ins Deezer links it to.
+//
+// A dead entry often carries an empty ALB_PICTURE while the stand-in that
+// replaces it still has the sleeve of the same release. Candidates are held to
+// the same linkedStandIn check as the audio, so a live take or a radio edit
+// cannot donate its artwork.
+func coverCandidates(track *Track) []string {
+	var covers []string
+	add := func(cover string) {
+		if cover != "" && !slices.Contains(covers, cover) {
+			covers = append(covers, cover)
+		}
+	}
+
+	add(track.Cover)
+	for _, candidate := range embeddedCandidates(track, maxFallbackDepth) {
+		if candidate.Cover != "" && linkedStandIn(track, candidate) {
+			add(candidate.Cover)
+		}
+	}
+
+	return covers
 }
 
 // embeddedCandidates walks the FALLBACK chain and returns the candidates in

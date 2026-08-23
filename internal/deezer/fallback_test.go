@@ -5,19 +5,23 @@ import (
 	"testing"
 )
 
+// variantOf returns a copy of base with edits applied, so a table case states
+// only the fields it varies.
+func variantOf(base Track, edits ...func(*Track)) *Track {
+	candidate := base
+	for _, edit := range edits {
+		edit(&candidate)
+	}
+
+	return &candidate
+}
+
 func TestLinkedStandIn(t *testing.T) {
 	original := &Track{ID: "1984831597", Artist: "cults", Title: "Gilded Lily", ISRC: "QM8QH1700573", Duration: "213", TrackToken: "original-token"}
 
-	// base is a valid stand-in, so each case states only the field it varies.
+	// base is a valid stand-in for original.
 	base := Track{ID: "2075423167", Artist: "cults", Title: "Gilded Lily", ISRC: "USQX92206420", Duration: "212", TrackToken: "token"}
-	with := func(edits ...func(*Track)) *Track {
-		candidate := base
-		for _, edit := range edits {
-			edit(&candidate)
-		}
-
-		return &candidate
-	}
+	with := func(edits ...func(*Track)) *Track { return variantOf(base, edits...) }
 
 	tests := []struct {
 		name      string
@@ -158,6 +162,83 @@ func TestEmbeddedCandidates(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("embeddedCandidates() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCoverCandidates(t *testing.T) {
+	const (
+		ownCover     = "b940289c9ccb1981f85876cf83311efd"
+		standInCover = "c95730cdd2eada45468be38317067b8e"
+		furtherCover = "3b1e0a1f7c2d4e5a6b7c8d9e0f1a2b3c"
+		unrelatedArt = "ffffffffffffffffffffffffffffffff"
+	)
+
+	// original is the dead entry, base a valid stand-in for it.
+	original := Track{ID: "2967949521", Artist: "Gaskin", Title: "Closer", Duration: "234", TrackToken: "original-token"}
+	base := Track{ID: "3811506992", Artist: "Gaskin", Title: "Closer", Duration: "234", TrackToken: "token", Cover: standInCover}
+	with := func(edits ...func(*Track)) *Track { return variantOf(base, edits...) }
+	from := func(cover string, fallback *Track) *Track {
+		return variantOf(original, func(t *Track) { t.Cover = cover; t.Fallback = fallback })
+	}
+
+	tests := []struct {
+		name  string
+		track *Track
+		want  []string
+	}{
+		{
+			name:  "the track has its own cover",
+			track: from(ownCover, with()),
+			want:  []string{ownCover, standInCover},
+		},
+		{
+			name:  "no cover of its own, the stand-in has one",
+			track: from("", with()),
+			want:  []string{standInCover},
+		},
+		{
+			name:  "no cover anywhere",
+			track: from("", with(func(c *Track) { c.Cover = "" })),
+			want:  nil,
+		},
+		{
+			name:  "no fallback at all",
+			track: from("", nil),
+			want:  nil,
+		},
+		{
+			name:  "a candidate that is not a stand-in is not asked for its sleeve",
+			track: from("", with(func(c *Track) { c.Duration = "178"; c.Cover = unrelatedArt })),
+			want:  nil,
+		},
+		{
+			name:  "a candidate with no track token is not a stand-in",
+			track: from("", with(func(c *Track) { c.TrackToken = "" })),
+			want:  nil,
+		},
+		{
+			name: "further down the chain",
+			track: from("", with(func(c *Track) {
+				c.Cover = ""
+				c.Fallback = with(func(f *Track) { f.ID = "4000000001"; f.Cover = furtherCover })
+			})),
+			want: []string{furtherCover},
+		},
+		{
+			name: "the same cover twice in the chain",
+			track: from(standInCover, with(func(c *Track) {
+				c.Fallback = with(func(f *Track) { f.ID = "4000000001" })
+			})),
+			want: []string{standInCover},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := coverCandidates(tt.track); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("coverCandidates() = %v, want %v", got, tt.want)
 			}
 		})
 	}

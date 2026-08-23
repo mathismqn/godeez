@@ -90,7 +90,10 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	cover, err := d.deezerClient.FetchCoverImage(ctx, track)
-	if err != nil && !errors.Is(err, context.Canceled) {
+	switch {
+	case errors.Is(err, deezer.ErrPlaceholderCover):
+		warnings = append(warnings, err.Error())
+	case err != nil && !errors.Is(err, context.Canceled):
 		warnings = append(warnings, fmt.Sprintf("failed to fetch cover image: %v", err))
 	}
 
