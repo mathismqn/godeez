@@ -68,21 +68,22 @@ func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, qual
 // coverCandidates returns the cover ids worth trying for track, best first:
 // its own, then those of the stand-ins Deezer links it to.
 //
-// A dead entry often carries an empty ALB_PICTURE while the stand-in that
+// A dead entry carries no cover of its own, either as an empty ALB_PICTURE or
+// as missingCoverMD5 spelled out in the field, while the stand-in that
 // replaces it still has the sleeve of the same release. Candidates are held to
 // the same linkedStandIn check as the audio, so a live take or a radio edit
 // cannot donate its artwork.
 func coverCandidates(track *Track) []string {
 	var covers []string
 	add := func(cover string) {
-		if cover != "" && !slices.Contains(covers, cover) {
+		if usableCover(cover) && !slices.Contains(covers, cover) {
 			covers = append(covers, cover)
 		}
 	}
 
 	add(track.Cover)
 	for _, candidate := range embeddedCandidates(track, maxFallbackDepth) {
-		if candidate.Cover != "" && linkedStandIn(track, candidate) {
+		if usableCover(candidate.Cover) && linkedStandIn(track, candidate) {
 			add(candidate.Cover)
 		}
 	}

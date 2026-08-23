@@ -204,6 +204,16 @@ func TestCoverCandidates(t *testing.T) {
 			want:  nil,
 		},
 		{
+			name:  "the placeholder id spelled out is not a cover",
+			track: from(missingCoverMD5, with()),
+			want:  []string{standInCover},
+		},
+		{
+			name:  "the placeholder id on both is no cover at all",
+			track: from(missingCoverMD5, with(func(c *Track) { c.Cover = missingCoverMD5 })),
+			want:  nil,
+		},
+		{
 			name:  "no fallback at all",
 			track: from("", nil),
 			want:  nil,

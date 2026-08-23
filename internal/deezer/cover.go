@@ -14,6 +14,13 @@ import (
 // every empty or unknown cover id there and serves a grey placeholder.
 const missingCoverMD5 = "d41d8cd98f00b204e9800998ecf8427e"
 
+// usableCover reports whether cover could name real artwork. An entry with
+// none leaves ALB_PICTURE empty or spells missingCoverMD5 out in it, and both
+// only ever resolve to the placeholder, so neither is worth a request.
+func usableCover(cover string) bool {
+	return cover != "" && cover != missingCoverMD5
+}
+
 // ErrPlaceholderCover reports that Deezer has no artwork for the track. It
 // comes back alongside the placeholder image rather than instead of it, so a
 // caller that would rather embed something than nothing still can.
