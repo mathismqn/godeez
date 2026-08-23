@@ -18,6 +18,11 @@ import (
 // path, which keeps the ledger useful across library reorganisations. That
 // lookup is best effort throughout: every failure falls through to
 // downloading again, which is always safe.
+//
+// A file sitting at its recorded path is taken at face value and never
+// measured against the recorded size. Tagging a library with another tool
+// legitimately rewrites those bytes, and re-downloading a track because the
+// user edited its tags would be worse than trusting it.
 func (d *Downloader) shouldSkipDownload(ctx context.Context, trackID, mediaFormat string) (string, bool) {
 	existing, err := d.store.DownloadInfo(trackID)
 	if err != nil || existing.Quality != mediaFormat {
@@ -32,16 +37,17 @@ func (d *Downloader) shouldSkipDownload(ctx context.Context, trackID, mediaForma
 		return "", false
 	}
 
-	if err := d.initHashIndex(ctx); err != nil {
+	if err := d.initFileIndex(ctx); err != nil {
 		return "", false
 	}
 
-	foundPath, ok := d.hashIndex.find(existing.Hash)
+	foundPath, foundSize, ok := d.fileIndex.find(existing.Hash, existing.Size)
 	if !ok {
 		return "", false
 	}
 
 	existing.Path = foundPath
+	existing.Size = foundSize
 	_ = d.store.PutDownloadInfo(existing)
 
 	return foundPath, true

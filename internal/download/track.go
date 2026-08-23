@@ -146,7 +146,7 @@ func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Tr
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 
-	hash, err := hashFile(outputPath)
+	hash, size, err := hashFile(outputPath)
 	if err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to get file hash: %v", err))
 	}
@@ -156,6 +156,7 @@ func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Tr
 		Quality:    outputFormat,
 		Path:       outputPath,
 		Hash:       hash,
+		Size:       size,
 		Downloaded: time.Now(),
 	}
 

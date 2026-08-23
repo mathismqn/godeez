@@ -29,9 +29,9 @@ type Downloader struct {
 	kind         deezer.Kind
 	deezerClient *deezer.Client
 
-	hashIndexOnce sync.Once
-	hashIndex     *hashIndex
-	hashIndexErr  error
+	fileIndexOnce sync.Once
+	fileIndex     *fileIndex
+	fileIndexErr  error
 }
 
 func New(appConfig *config.Config, st *store.Store, kind deezer.Kind) *Downloader {
@@ -54,6 +54,10 @@ func (d *Downloader) Run(ctx context.Context, opts Options, id string) error {
 	if err != nil {
 		return err
 	}
+
+	// After the resource is known, so a bad id or a rejected quality is
+	// reported straight away rather than behind a one time library scan.
+	d.migrateSizes(ctx)
 
 	return d.downloadAllTracks(ctx, resource, opts, outputDir)
 }

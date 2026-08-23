@@ -37,13 +37,34 @@ func newProgressTracker(totalTracks int, kind deezer.Kind) *progressTracker {
 	}
 }
 
+// startLedgerScan announces the one time pass that rewrites records written
+// before the ledger tracked file sizes. It is only called once that pass has
+// to read the library, which can stall for minutes; a database that only
+// needs stat-ing is upgraded silently.
+func startLedgerScan() *spinner.Spinner {
+	return newSpinner(" Upgrading the download database")
+}
+
+func finishLedgerScan(sp *spinner.Spinner) {
+	sp.Stop()
+	fmt.Print("✔ Download database upgraded\n\n")
+}
+
 func (pt *progressTracker) startDownload(index int, track *deezer.Track) *spinner.Spinner {
 	trackProgress := fmt.Sprintf("[%d/%d]", index+1, pt.totalTracks)
 
+	sp := newSpinner(fmt.Sprintf(" Downloading: %s - %s", track.Artist, track.FullTitle()))
+	sp.Prefix = trackProgress + " "
+
+	return sp
+}
+
+// newSpinner starts a spinner on stdout, so that every long step of a run
+// shares one look.
+func newSpinner(suffix string) *spinner.Spinner {
 	sp := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	sp.Writer = os.Stdout
-	sp.Prefix = trackProgress + " "
-	sp.Suffix = fmt.Sprintf(" Downloading: %s - %s", track.Artist, track.FullTitle())
+	sp.Suffix = suffix
 	sp.Start()
 
 	return sp
