@@ -37,8 +37,8 @@ Example (Linux/macOS):
 
 ```bash
 # Make it executable and move it to /usr/local/bin for access from anywhere
-chmod +x godeez_1.5.0_linux_amd64
-mv godeez_1.5.0_linux_amd64 /usr/local/bin/godeez
+chmod +x godeez_1.5.1_linux_amd64
+mv godeez_1.5.1_linux_amd64 /usr/local/bin/godeez
 ```
 
 Each release also includes a `checksums.txt`, so you can verify your download:
@@ -145,9 +145,9 @@ export DEEZER_MOBILE_GW_KEY="your_gateway_key"   # exactly 16 characters
 
 ### Output directory
 
-Downloaded files are saved to `~/Music/GoDeez`. The download database (`.tracks.db`) is stored in the same directory as your music.
+Downloaded files are saved to `~/Music/GoDeez`. The download database (`.tracks.db`) is stored in the same directory as your music. Do not delete it: it is how **GoDeez** knows what you already have.
 
-> **Upgrading from v1.3.0?** The `~/.godeez` directory and `config.toml` are no longer used. Set the `DEEZER_ARL` environment variable instead. Your existing database will be migrated automatically on first run.
+> **Upgrading from v1.3.0?** The `~/.godeez` directory and `config.toml` are no longer used. Authenticate with `godeez login` or by setting `DEEZER_ARL`. Your existing database will be migrated automatically on first run.
 
 ## Usage
 

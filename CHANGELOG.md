@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-08-24
+
+### Changed
+
+- Moving or renaming a downloaded file no longer makes the next run hash the entire library to find it again. Candidates are now matched on size first, so only a real one is read.
+- The first run after upgrading updates the download database, and reports its progress while it does.
+
+### Fixed
+
+- Tracks that failed with `invalid track token` now download ([#8](https://github.com/mathismqn/godeez/issues/8)). Deezer plays some entries from a linked one, and that link is now followed the same way its own player does.
+- Tracks that came with a grey placeholder instead of their sleeve now take the artwork from the entry they play from.
+
 ## [1.5.0] - 2026-08-05
 
 ### Added
