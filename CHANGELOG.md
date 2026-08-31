@@ -5,17 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.1] - 2026-08-24
+## [1.5.1] - 2026-08-31
 
 ### Changed
 
-- Moving or renaming a downloaded file no longer makes the next run hash the entire library to find it again. Candidates are now matched on size first, so only a real one is read.
-- The first run after upgrading updates the download database, and reports its progress while it does.
+- Match candidate files by size before hashing, so a moved or renamed download is found without re-hashing the library.
+- Report progress while the download database is updated on the first run after upgrading.
 
 ### Fixed
 
-- Tracks that failed with `invalid track token` now download ([#8](https://github.com/mathismqn/godeez/issues/8)). Deezer plays some entries from a linked one, and that link is now followed the same way its own player does.
-- Tracks that came with a grey placeholder instead of their sleeve now take the artwork from the entry they play from.
+- Download tracks that failed with `invalid track token` by following the entry Deezer plays them from ([#8](https://github.com/mathismqn/godeez/issues/8)).
+- Use the artwork of the linked entry when a track only has a grey placeholder cover.
+- Prefix and tag album tracks with their disc number so multi-disc albums no longer repeat the first track number ([#9](https://github.com/mathismqn/godeez/issues/9)).
+- Skip personal uploads in playlists instead of failing the whole playlist, as Deezer serves them with no streaming rights.
 
 ## [1.5.0] - 2026-08-05
 
@@ -121,3 +123,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Initial release of **GoDeez** with basic Deezer album and playlist downloading capabilities.
+
+[1.5.1]: https://github.com/mathismqn/godeez/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/mathismqn/godeez/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/mathismqn/godeez/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/mathismqn/godeez/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/mathismqn/godeez/compare/v1.1.1...v1.2.0
+[1.1.1]: https://github.com/mathismqn/godeez/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/mathismqn/godeez/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/mathismqn/godeez/releases/tag/v1.0.0
