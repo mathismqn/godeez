@@ -17,11 +17,14 @@ func variantOf(base Track, edits ...func(*Track)) *Track {
 }
 
 func TestLinkedStandIn(t *testing.T) {
-	original := &Track{ID: "1984831597", Artist: "cults", Title: "Gilded Lily", ISRC: "QM8QH1700573", Duration: "213", TrackToken: "original-token"}
+	original := &Track{ID: "1984831597", Artist: "cults", Title: "Gilded Lily", ProductID: "12550242", ISRC: "QM8QH1700573", Duration: "213", TrackToken: "original-token"}
 
-	// base is a valid stand-in for original.
-	base := Track{ID: "2075423167", Artist: "cults", Title: "Gilded Lily", ISRC: "USQX92206420", Duration: "212", TrackToken: "token"}
+	// base is a valid stand-in for original: another release of the same master.
+	base := Track{ID: "2075423167", Artist: "cults", Title: "Gilded Lily", ProductID: "12550242", ISRC: "USQX92206420", Duration: "212", TrackToken: "token"}
 	with := func(edits ...func(*Track)) *Track { return variantOf(base, edits...) }
+
+	// unrelated is a candidate neither identifier vouches for.
+	unrelated := func(c *Track) { c.ProductID = "99999999"; c.ISRC = "GBAYE0601498" }
 
 	tests := []struct {
 		name      string
@@ -34,58 +37,40 @@ func TestLinkedStandIn(t *testing.T) {
 			want:      true,
 		},
 		{
-			name:      "isrc matching as well",
-			candidate: with(func(c *Track) { c.ISRC = original.ISRC }),
+			name:      "the isrc alone, when the recording ids differ",
+			candidate: with(func(c *Track) { c.ProductID = "77777777"; c.ISRC = original.ISRC }),
 			want:      true,
 		},
 		{
-			name:      "candidate carries no isrc",
-			candidate: with(func(c *Track) { c.ISRC = "" }),
-			want:      true,
-		},
-		{
-			name:      "artist and title cased differently",
-			candidate: with(func(c *Track) { c.Artist = "Cults"; c.Title = "GILDED LILY" }),
-			want:      true,
-		},
-		{
-			name:      "duration off by two is a trimmed fade",
-			candidate: with(func(c *Track) { c.Duration = "215" }),
-			want:      true,
-		},
-		{
-			name:      "duration off by five is the edge of the window",
-			candidate: with(func(c *Track) { c.Duration = "208" }),
-			want:      true,
-		},
-		{
-			name:      "duration off by six is a different edit",
-			candidate: with(func(c *Track) { c.Duration = "219" }),
-			want:      false,
-		},
-		{
-			name:      "a radio edit of the same song",
-			candidate: with(func(c *Track) { c.Duration = "178" }),
-			want:      false,
-		},
-		{
-			name:      "a live take of the same song",
-			candidate: with(func(c *Track) { c.Version = "(Live)" }),
-			want:      false,
-		},
-		{
-			name:      "another song by the same artist",
-			candidate: with(func(c *Track) { c.Title = "Always Forever" }),
-			want:      false,
-		},
-		{
-			name:      "a cover by someone else",
+			name:      "the release Deezer links to credits another artist",
 			candidate: with(func(c *Track) { c.Artist = "Someone Else" }),
+			want:      true,
+		},
+		{
+			name:      "a packaging suffix on the stand-in's title",
+			candidate: with(func(c *Track) { c.Title = "Gilded Lily (Bonus Track)" }),
+			want:      true,
+		},
+		{
+			name:      "a length Deezer got wrong, and a length it never sent",
+			candidate: with(func(c *Track) { c.Duration = "121" }),
+			want:      true,
+		},
+		{
+			// Neither its version nor its length is read: the identifiers are
+			// the only thing refusing it.
+			name:      "a live take of the same length",
+			candidate: with(func(c *Track) { c.Version = "(Live)"; unrelated(c) }),
 			want:      false,
 		},
 		{
-			name:      "unparseable duration",
-			candidate: with(func(c *Track) { c.Duration = "unknown" }),
+			name:      "neither identifier vouches, everything else matching",
+			candidate: with(unrelated),
+			want:      false,
+		},
+		{
+			name:      "candidate carries neither identifier",
+			candidate: with(func(c *Track) { c.ProductID = ""; c.ISRC = "" }),
 			want:      false,
 		},
 		{
@@ -118,11 +103,11 @@ func TestLinkedStandIn(t *testing.T) {
 		})
 	}
 
-	t.Run("original has no duration", func(t *testing.T) {
-		noDuration := &Track{ID: "1", Artist: "cults", Title: "Gilded Lily"}
+	t.Run("original carries neither identifier", func(t *testing.T) {
+		bare := &Track{ID: "1", Artist: "cults", Title: "Gilded Lily", Duration: "213"}
 		candidate := &Track{ID: "2", Artist: "cults", Title: "Gilded Lily", Duration: "213", TrackToken: "token"}
-		if linkedStandIn(noDuration, candidate) {
-			t.Error("linkedStandIn() = true, want false when the original has no duration")
+		if linkedStandIn(bare, candidate) {
+			t.Error("linkedStandIn() = true, want false when neither side carries an identifier")
 		}
 	})
 }
@@ -176,8 +161,8 @@ func TestCoverCandidates(t *testing.T) {
 	)
 
 	// original is the dead entry, base a valid stand-in for it.
-	original := Track{ID: "2967949521", Artist: "Gaskin", Title: "Closer", Duration: "234", TrackToken: "original-token"}
-	base := Track{ID: "3811506992", Artist: "Gaskin", Title: "Closer", Duration: "234", TrackToken: "token", Cover: standInCover}
+	original := Track{ID: "2967949521", Artist: "Gaskin", Title: "Closer", ProductID: "17550242", Duration: "234", TrackToken: "original-token"}
+	base := Track{ID: "3811506992", Artist: "Gaskin", Title: "Closer", ProductID: "17550242", Duration: "234", TrackToken: "token", Cover: standInCover}
 	with := func(edits ...func(*Track)) *Track { return variantOf(base, edits...) }
 	from := func(cover string, fallback *Track) *Track {
 		return variantOf(original, func(t *Track) { t.Cover = cover; t.Fallback = fallback })
@@ -220,7 +205,7 @@ func TestCoverCandidates(t *testing.T) {
 		},
 		{
 			name:  "a candidate that is not a stand-in is not asked for its sleeve",
-			track: from("", with(func(c *Track) { c.Duration = "178"; c.Cover = unrelatedArt })),
+			track: from("", with(func(c *Track) { c.ProductID = "99999999"; c.Cover = unrelatedArt })),
 			want:  nil,
 		},
 		{

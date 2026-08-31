@@ -10,14 +10,6 @@ import (
 // level in practice, so this is slack rather than a budget.
 const maxFallbackDepth = 3
 
-// durationToleranceSec is how far two Deezer records of the same recording
-// are allowed to disagree. DURATION is an integer rounding produced
-// separately by each catalogue ingest, and two ingests of one master drift
-// further than that rounding when one trims a fade or a lead-in the other
-// keeps. The window stays well short of a different edit: a radio edit runs
-// tens of seconds short, an extended mix minutes long.
-const durationToleranceSec = 5
-
 // resolveFallback returns the media of a verified stand-in for track, or nil
 // when none can be verified.
 //
@@ -69,9 +61,9 @@ func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, qual
 //
 // A dead entry carries no cover of its own, either as an empty ALB_PICTURE or
 // as missingCoverMD5 spelled out in the field, while the stand-in that
-// replaces it still has the sleeve of the same release. Candidates are held to
-// the same linkedStandIn check as the audio, so a live take or a radio edit
-// cannot donate its artwork.
+// replaces it still carries a sleeve. Candidates are held to the same
+// linkedStandIn check as the audio, so the artwork comes from another release
+// of the same recording rather than from a different song.
 func coverCandidates(track *Track) []string {
 	var covers []string
 	add := func(cover string) {
@@ -112,39 +104,22 @@ func embeddedCandidates(track *Track, maxDepth int) []*Track {
 // linkedStandIn reports whether candidate is an acceptable stand-in for
 // original.
 //
-// The ISRC is deliberately not required to match. A re-release, or a change
-// of distributor, is registered under a new ISRC while staying the same
-// master, and Deezer keeps pointing FALLBACK at it; requiring identical codes
-// would reject entries the official client plays. Artist, title and duration
-// are checked instead, which is what keeps a live take or a radio edit from
-// passing as the album cut. A remaster of the same title and length still
-// passes: nothing in the payload tells it apart from the original master.
+// Each identifier can vouch for a candidate but neither can veto one, since a
+// mismatch is not evidence of a different recording: a re-release is
+// registered under a new ISRC while staying the same master, and Deezer keeps
+// pointing FALLBACK at it. PRODUCT_TRACK_ID is asked first because it names
+// the recording rather than this listing of it, so it carries across every
+// release of one master. The ISRC adds no coverage in practice but is a public
+// standard rather than a field of Deezer's own gateway, so it still answers if
+// PRODUCT_TRACK_ID stops being sent.
 func linkedStandIn(original, candidate *Track) bool {
 	if candidate == nil || candidate.ID == "" || candidate.ID == original.ID || candidate.TrackToken == "" {
 		return false
 	}
 
-	if !strings.EqualFold(original.Artist, candidate.Artist) || !strings.EqualFold(original.FullTitle(), candidate.FullTitle()) {
-		return false
+	if original.ProductID != "" && original.ProductID == candidate.ProductID {
+		return true
 	}
 
-	return sameDuration(original, candidate)
-}
-
-// sameDuration reports whether the two entries agree on duration within
-// durationToleranceSec. A duration that is missing or does not parse fails
-// the check rather than passing it, since length is the only thing separating
-// the album cut from another edit of the same song.
-func sameDuration(original, candidate *Track) bool {
-	originalDuration, ok := original.Duration.Int()
-	if !ok || originalDuration <= 0 {
-		return false
-	}
-
-	candidateDuration, ok := candidate.Duration.Int()
-	if !ok || candidateDuration <= 0 {
-		return false
-	}
-
-	return max(originalDuration-candidateDuration, candidateDuration-originalDuration) <= durationToleranceSec
+	return original.ISRC != "" && strings.EqualFold(original.ISRC, candidate.ISRC)
 }

@@ -88,6 +88,7 @@ type Track struct {
 	Duration     Number       `json:"DURATION"`
 	Gain         Number       `json:"GAIN"`
 	ISRC         string       `json:"ISRC"`
+	ProductID    Number       `json:"PRODUCT_TRACK_ID"`
 	TrackNumber  Number       `json:"TRACK_NUMBER"`
 	DiscNumber   Number       `json:"DISK_NUMBER"`
 	TrackToken   string       `json:"TRACK_TOKEN"`

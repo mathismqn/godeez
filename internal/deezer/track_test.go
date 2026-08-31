@@ -111,13 +111,13 @@ func TestTrackNumberDecoding(t *testing.T) {
 	}{
 		{
 			name: "quoted",
-			json: `{"SNG_ID":"2358247075","DURATION":"213","GAIN":"-11.2","TYPE":"0","TRACK_NUMBER":"7","DISK_NUMBER":"2"}`,
-			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2"},
+			json: `{"SNG_ID":"2358247075","DURATION":"213","GAIN":"-11.2","TYPE":"0","TRACK_NUMBER":"7","DISK_NUMBER":"2","PRODUCT_TRACK_ID":"12550242"}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2", ProductID: "12550242"},
 		},
 		{
 			name: "bare",
-			json: `{"SNG_ID":2358247075,"DURATION":213,"GAIN":-11.2,"TYPE":0,"TRACK_NUMBER":7,"DISK_NUMBER":2}`,
-			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2"},
+			json: `{"SNG_ID":2358247075,"DURATION":213,"GAIN":-11.2,"TYPE":0,"TRACK_NUMBER":7,"DISK_NUMBER":2,"PRODUCT_TRACK_ID":12550242}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2", ProductID: "12550242"},
 		},
 		{
 			// A personal upload's id, which is what made a whole playlist
@@ -128,7 +128,7 @@ func TestTrackNumberDecoding(t *testing.T) {
 		},
 		{
 			name: "null",
-			json: `{"SNG_ID":null,"DURATION":null,"GAIN":null,"TYPE":null,"TRACK_NUMBER":null,"DISK_NUMBER":null}`,
+			json: `{"SNG_ID":null,"DURATION":null,"GAIN":null,"TYPE":null,"TRACK_NUMBER":null,"DISK_NUMBER":null,"PRODUCT_TRACK_ID":null}`,
 			want: Track{},
 		},
 		{
