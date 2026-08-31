@@ -30,6 +30,12 @@ import (
 // Everything else, including a missing cover or a quality downgrade, is
 // reported as a warning.
 func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource, track *deezer.Track, opts Options, outputDir string, discs discLayout) downloadResult {
+	// Checked before anything else: an upload has no media to fetch, so
+	// asking would spend a request per upload to be told so.
+	if track.IsPersonalUpload() {
+		return downloadResult{skip: skipPersonalUpload}
+	}
+
 	media, err := d.deezerClient.FetchMedia(ctx, track, opts.sourceQuality())
 	if err != nil {
 		return downloadResult{err: fmt.Errorf("failed to fetch media: %w", err)}
@@ -49,7 +55,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	if skipPath, skip := d.shouldSkipDownload(ctx, string(track.ID), outputFormat); skip {
-		return downloadResult{skipped: true, path: skipPath}
+		return downloadResult{skip: skipAlreadyDownloaded, path: skipPath}
 	}
 
 	metadataChan := make(chan metadataResult, 1)

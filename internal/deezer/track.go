@@ -92,6 +92,10 @@ type Track struct {
 	DiscNumber   Number       `json:"DISK_NUMBER"`
 	TrackToken   string       `json:"TRACK_TOKEN"`
 
+	// Type tells a catalogue track apart from a personal upload; see
+	// IsPersonalUpload.
+	Type Number `json:"TYPE"`
+
 	// Fallback is the readable duplicate Deezer points at when this entry
 	// has no streaming rights of its own.
 	Fallback *Track `json:"FALLBACK"`
@@ -102,4 +106,14 @@ func (t *Track) FullTitle() string {
 		return t.Title + " " + t.Version
 	}
 	return t.Title
+}
+
+// IsPersonalUpload reports whether this entry is a file the playlist owner
+// uploaded rather than a track from Deezer's catalogue. Deezer marks those
+// with TYPE 1 and serves them with no streaming rights at all.
+//
+// An upload still carries a TRACK_TOKEN like any other entry, so the token
+// cannot be used to tell the two apart.
+func (t *Track) IsPersonalUpload() bool {
+	return t.Type == "1"
 }

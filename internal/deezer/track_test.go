@@ -111,13 +111,13 @@ func TestTrackNumberDecoding(t *testing.T) {
 	}{
 		{
 			name: "quoted",
-			json: `{"SNG_ID":"2358247075","DURATION":"213","GAIN":"-11.2","TRACK_NUMBER":"7","DISK_NUMBER":"2"}`,
-			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", TrackNumber: "7", DiscNumber: "2"},
+			json: `{"SNG_ID":"2358247075","DURATION":"213","GAIN":"-11.2","TYPE":"0","TRACK_NUMBER":"7","DISK_NUMBER":"2"}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2"},
 		},
 		{
 			name: "bare",
-			json: `{"SNG_ID":2358247075,"DURATION":213,"GAIN":-11.2,"TRACK_NUMBER":7,"DISK_NUMBER":2}`,
-			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", TrackNumber: "7", DiscNumber: "2"},
+			json: `{"SNG_ID":2358247075,"DURATION":213,"GAIN":-11.2,"TYPE":0,"TRACK_NUMBER":7,"DISK_NUMBER":2}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", Type: "0", TrackNumber: "7", DiscNumber: "2"},
 		},
 		{
 			// A personal upload's id, which is what made a whole playlist
@@ -128,7 +128,7 @@ func TestTrackNumberDecoding(t *testing.T) {
 		},
 		{
 			name: "null",
-			json: `{"SNG_ID":null,"DURATION":null,"GAIN":null,"TRACK_NUMBER":null,"DISK_NUMBER":null}`,
+			json: `{"SNG_ID":null,"DURATION":null,"GAIN":null,"TYPE":null,"TRACK_NUMBER":null,"DISK_NUMBER":null}`,
 			want: Track{},
 		},
 		{
@@ -159,5 +159,48 @@ func TestTrackNumberRejectsNonNumbers(t *testing.T) {
 		if err := json.Unmarshal([]byte(data), &track); err == nil {
 			t.Errorf("Unmarshal(%s) = nil error, want a failure (ID = %q)", data, track.ID)
 		}
+	}
+}
+
+// TestIsPersonalUpload works on values: how TYPE itself arrives is already
+// covered by TestTrackNumberDecoding.
+func TestIsPersonalUpload(t *testing.T) {
+	tests := []struct {
+		name  string
+		track Track
+		want  bool
+	}{
+		{"personal upload", Track{Type: "1"}, true},
+		{"catalogue track", Track{Type: "0"}, false},
+		{"response without a type", Track{}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.track.IsPersonalUpload(); got != tt.want {
+				t.Errorf("IsPersonalUpload() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPersonalUploadEntry decodes an upload as the gateway really sends one.
+// This is the entry that used to fail the whole playlist.
+func TestPersonalUploadEntry(t *testing.T) {
+	data := `{"SNG_ID":-3002903542,"UPLOAD_ID":3002903542,"TYPE":1,"SNG_TITLE":"01 Omotesando","ART_NAME":"N\u00e9pal","ALB_ID":0,"ALB_TITLE":"KKSHISENSE8","DURATION":"188","ALB_PICTURE":"6820a7d8773de130e1fa67bf32aa505c","TRACK_TOKEN":"AAAAAWqVckt","MEDIA":[],"RIGHTS":{"STREAM_ADS_AVAILABLE":false,"STREAM_SUB_AVAILABLE":false},"ISRC":"","__TYPE__":"song"}`
+
+	var track Track
+	if err := json.Unmarshal([]byte(data), &track); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+
+	if !track.IsPersonalUpload() {
+		t.Error("IsPersonalUpload() = false, want true")
+	}
+	if track.ID != "-3002903542" {
+		t.Errorf("ID = %q, want -3002903542", track.ID)
+	}
+	if track.Duration != "188" {
+		t.Errorf("Duration = %q, want 188", track.Duration)
 	}
 }

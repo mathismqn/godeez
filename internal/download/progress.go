@@ -10,11 +10,33 @@ import (
 	"github.com/mathismqn/godeez/internal/deezer"
 )
 
+// skipReason is why a track was passed over. It travels as a value rather
+// than as a finished sentence so that the wording stays in this file, the
+// same way it does for err.
+type skipReason int
+
+const (
+	skipNone skipReason = iota
+	skipAlreadyDownloaded
+	skipPersonalUpload
+)
+
 type downloadResult struct {
-	skipped  bool
+	skip     skipReason
 	path     string
 	warnings []string
 	err      error
+}
+
+func (r downloadResult) skipMessage() string {
+	switch r.skip {
+	case skipAlreadyDownloaded:
+		return fmt.Sprintf("Already exists at: %s", r.path)
+	case skipPersonalUpload:
+		return "Personal upload, not available for download"
+	}
+
+	return ""
 }
 
 type downloadStats struct {
@@ -74,10 +96,10 @@ func (pt *progressTracker) handleResult(index int, track *deezer.Track, result d
 	trackProgress := fmt.Sprintf("[%d/%d]", index+1, pt.totalTracks)
 	trackTitle := track.FullTitle()
 
-	if result.skipped {
+	if result.skip != skipNone {
 		pt.stats.skipped++
-		fmt.Printf("%s ↷ Skipped: %s - %s\n    Already exists at: %s\n",
-			trackProgress, track.Artist, trackTitle, result.path)
+		fmt.Printf("%s ↷ Skipped: %s - %s\n    %s\n",
+			trackProgress, track.Artist, trackTitle, result.skipMessage())
 		return
 	}
 
