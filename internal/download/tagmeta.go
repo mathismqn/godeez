@@ -16,7 +16,7 @@ func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byt
 		Genre:       genre,
 		BPM:         bpm.BPM,
 		Key:         bpm.Key,
-		TrackNumber: track.TrackNumber,
+		TrackNumber: string(track.TrackNumber),
 		Duration:    track.Duration,
 		Gain:        track.Gain,
 		ISRC:        track.ISRC,

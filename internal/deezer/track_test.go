@@ -99,3 +99,31 @@ func TestTrackUnmarshalFallbackToken(t *testing.T) {
 		t.Errorf("Fallback.TrackToken = %q, want duplicate", track.Fallback.TrackToken)
 	}
 }
+
+// TestTrackNumberDecoding guards the track number against the gateway's
+// inconsistent quoting: an unquoted one used to fail the whole album rather
+// than the one field.
+func TestTrackNumberDecoding(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+		want Number
+	}{
+		{name: "quoted", json: `{"TRACK_NUMBER":"7"}`, want: "7"},
+		{name: "bare number", json: `{"TRACK_NUMBER":7}`, want: "7"},
+		{name: "null", json: `{"TRACK_NUMBER":null}`, want: ""},
+		{name: "absent", json: `{}`, want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var track Track
+			if err := json.Unmarshal([]byte(tt.json), &track); err != nil {
+				t.Fatalf("Unmarshal() error = %v", err)
+			}
+			if track.TrackNumber != tt.want {
+				t.Errorf("TrackNumber = %q, want %q", track.TrackNumber, tt.want)
+			}
+		})
+	}
+}

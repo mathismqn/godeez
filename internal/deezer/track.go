@@ -26,6 +26,32 @@ func (c *Contributors) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, aux)
 }
 
+// Number is a position from the gateway, which is inconsistent about whether
+// it quotes them. A plain string field fails the whole album on the one
+// response that sends a bare number, so both forms are accepted as text.
+type Number string
+
+func (n *Number) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+		*n = Number(s)
+
+		return nil
+	}
+
+	if string(data) == "null" {
+		*n = ""
+		return nil
+	}
+
+	*n = Number(data)
+
+	return nil
+}
+
 type Track struct {
 	ID           string       `json:"SNG_ID"`
 	Artist       string       `json:"ART_NAME"`
@@ -36,7 +62,7 @@ type Track struct {
 	Duration     string       `json:"DURATION"`
 	Gain         string       `json:"GAIN"`
 	ISRC         string       `json:"ISRC"`
-	TrackNumber  string       `json:"TRACK_NUMBER"`
+	TrackNumber  Number       `json:"TRACK_NUMBER"`
 	TrackToken   string       `json:"TRACK_TOKEN"`
 
 	// Fallback is the readable duplicate Deezer points at when this entry

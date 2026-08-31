@@ -28,10 +28,10 @@ func trackFilename(track *deezer.Track, kind deezer.Kind, format string) string 
 
 	prefix := ""
 	if kind == deezer.KindAlbum {
-		if n, err := strconv.Atoi(track.TrackNumber); err == nil {
+		if n, err := strconv.Atoi(string(track.TrackNumber)); err == nil {
 			prefix = fmt.Sprintf("%02d. ", n)
 		} else {
-			prefix = track.TrackNumber + ". "
+			prefix = string(track.TrackNumber) + ". "
 		}
 	}
 
