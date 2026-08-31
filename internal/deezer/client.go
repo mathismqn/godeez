@@ -158,7 +158,7 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 	return resource, nil
 }
 
-// errTrackUnavailable reports that the media server refused an entry because
+// ErrTrackUnavailable reports that the media server refused an entry because
 // it carries no streaming rights. The track token is not malformed and the
 // session is fine.
 //
@@ -166,7 +166,11 @@ func (c *Client) FetchResource(ctx context.Context, kind Kind, id string) (Resou
 // sentinel: media error code 2002, and a 200 whose media array is empty. A
 // third way belongs here too, since this is what FetchMedia tests before it
 // looks for a stand-in.
-var errTrackUnavailable = errors.New("track is not available for streaming")
+//
+// FetchMedia returns it only once no stand-in could be played either, so to a
+// caller it is settled rather than transient: Deezer has nothing playable for
+// this entry, and its own client cannot play it.
+var ErrTrackUnavailable = errors.New("track is not available for streaming")
 
 // FetchMedia resolves track to playable media at the requested quality.
 //
@@ -181,7 +185,7 @@ func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (
 		return newMedia(string(track.ID), res), nil
 	}
 
-	if !errors.Is(err, errTrackUnavailable) {
+	if !errors.Is(err, ErrTrackUnavailable) {
 		return nil, err
 	}
 
@@ -258,7 +262,7 @@ func (c *Client) fetchMediaForToken(ctx context.Context, trackToken, quality str
 
 	if len(res.Data) > 0 && len(res.Data[0].Errors) > 0 {
 		if res.Data[0].Errors[0].Code == 2002 {
-			return nil, errTrackUnavailable
+			return nil, ErrTrackUnavailable
 		}
 		return nil, errors.New(res.Data[0].Errors[0].Message)
 	}
@@ -268,9 +272,9 @@ func (c *Client) fetchMediaForToken(ctx context.Context, trackToken, quality str
 	}
 
 	// The empty media array is the second way a track with no streaming
-	// rights is refused; see errTrackUnavailable.
+	// rights is refused; see ErrTrackUnavailable.
 	if len(res.Data[0].Media) == 0 {
-		return nil, errTrackUnavailable
+		return nil, ErrTrackUnavailable
 	}
 
 	if len(res.Data[0].Media[0].Sources) == 0 {

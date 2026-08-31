@@ -37,7 +37,10 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	media, err := d.deezerClient.FetchMedia(ctx, track, opts.sourceQuality())
-	if err != nil {
+	switch {
+	case errors.Is(err, deezer.ErrTrackUnavailable):
+		return downloadResult{skip: skipUnavailable}
+	case err != nil:
 		return downloadResult{err: fmt.Errorf("failed to fetch media: %w", err)}
 	}
 

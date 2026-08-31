@@ -19,6 +19,7 @@ const (
 	skipNone skipReason = iota
 	skipAlreadyDownloaded
 	skipPersonalUpload
+	skipUnavailable
 )
 
 type downloadResult struct {
@@ -34,6 +35,8 @@ func (r downloadResult) skipMessage() string {
 		return fmt.Sprintf("Already exists at: %s", r.path)
 	case skipPersonalUpload:
 		return "Personal upload, not available for download"
+	case skipUnavailable:
+		return "Deezer has no playable version of this track"
 	}
 
 	return ""
