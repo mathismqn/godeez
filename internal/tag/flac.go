@@ -24,6 +24,9 @@ func (t *flacTagger) write(m Metadata) error {
 		}
 
 		t.addTag("TRACKNUMBER", m.TrackNumber)
+		t.addTag("TRACKTOTAL", m.TrackTotal)
+		t.addTag("DISCNUMBER", m.DiscNumber)
+		t.addTag("DISCTOTAL", m.DiscTotal)
 		t.addTag("ALBUMARTIST", m.Album.Artist)
 		t.addTag("ALBUM", m.Album.Title)
 		t.addTag("PUBLISHER", m.Album.Label)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mathismqn/godeez/internal/config"
+	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/store"
 )
 
@@ -25,6 +26,16 @@ func writeFile(t *testing.T, path, content string) string {
 	}
 
 	return path
+}
+
+// discLayoutOf builds a layout from one disc label per track.
+func discLayoutOf(discs ...string) discLayout {
+	tracks := make([]*deezer.Track, len(discs))
+	for i, disc := range discs {
+		tracks[i] = &deezer.Track{DiscNumber: deezer.Number(disc)}
+	}
+
+	return newDiscLayout(tracks)
 }
 
 // newTestDownloader builds a Downloader whose library and ledger are both dir.

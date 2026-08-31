@@ -100,19 +100,20 @@ func TestTrackUnmarshalFallbackToken(t *testing.T) {
 	}
 }
 
-// TestTrackNumberDecoding guards the track number against the gateway's
+// TestTrackPositionDecoding guards both positions against the gateway's
 // inconsistent quoting: an unquoted one used to fail the whole album rather
 // than the one field.
-func TestTrackNumberDecoding(t *testing.T) {
+func TestTrackPositionDecoding(t *testing.T) {
 	tests := []struct {
-		name string
-		json string
-		want Number
+		name         string
+		json         string
+		wantDisc     Number
+		wantTrackNum Number
 	}{
-		{name: "quoted", json: `{"TRACK_NUMBER":"7"}`, want: "7"},
-		{name: "bare number", json: `{"TRACK_NUMBER":7}`, want: "7"},
-		{name: "null", json: `{"TRACK_NUMBER":null}`, want: ""},
-		{name: "absent", json: `{}`, want: ""},
+		{name: "quoted", json: `{"DISK_NUMBER":"2","TRACK_NUMBER":"7"}`, wantDisc: "2", wantTrackNum: "7"},
+		{name: "bare number", json: `{"DISK_NUMBER":2,"TRACK_NUMBER":7}`, wantDisc: "2", wantTrackNum: "7"},
+		{name: "null", json: `{"DISK_NUMBER":null,"TRACK_NUMBER":null}`, wantDisc: "", wantTrackNum: ""},
+		{name: "absent", json: `{}`, wantDisc: "", wantTrackNum: ""},
 	}
 
 	for _, tt := range tests {
@@ -121,8 +122,11 @@ func TestTrackNumberDecoding(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.json), &track); err != nil {
 				t.Fatalf("Unmarshal() error = %v", err)
 			}
-			if track.TrackNumber != tt.want {
-				t.Errorf("TrackNumber = %q, want %q", track.TrackNumber, tt.want)
+			if track.DiscNumber != tt.wantDisc {
+				t.Errorf("DiscNumber = %q, want %q", track.DiscNumber, tt.wantDisc)
+			}
+			if track.TrackNumber != tt.wantTrackNum {
+				t.Errorf("TrackNumber = %q, want %q", track.TrackNumber, tt.wantTrackNum)
 			}
 		})
 	}

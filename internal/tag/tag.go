@@ -42,6 +42,9 @@ type Metadata struct {
 	BPM         string
 	Key         string
 	TrackNumber string
+	TrackTotal  string
+	DiscNumber  string
+	DiscTotal   string
 	Duration    string
 	Gain        string
 	ISRC        string

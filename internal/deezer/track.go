@@ -63,6 +63,7 @@ type Track struct {
 	Gain         string       `json:"GAIN"`
 	ISRC         string       `json:"ISRC"`
 	TrackNumber  Number       `json:"TRACK_NUMBER"`
+	DiscNumber   Number       `json:"DISK_NUMBER"`
 	TrackToken   string       `json:"TRACK_TOKEN"`
 
 	// Fallback is the readable duplicate Deezer points at when this entry

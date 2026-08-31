@@ -124,6 +124,9 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 // downloadAllTracks runs the per-track pipeline over the whole resource and
 // prints the summary.
 //
+// The disc layout is derived once for the whole album rather than per track,
+// and only for an album: the other kinds carry the zero layout.
+//
 // Cancellation is checked both before each track and against the result,
 // because a track cancelled mid-stream surfaces the error through the result
 // rather than through ctx. Any other per-track error is recorded and the loop
@@ -131,6 +134,11 @@ func (d *Downloader) prepareResource(ctx context.Context, id string, opts Option
 func (d *Downloader) downloadAllTracks(ctx context.Context, resource deezer.Resource, opts Options, outputDir string) error {
 	tracks := resource.Tracks()
 	startTime := time.Now()
+
+	var discs discLayout
+	if d.kind == deezer.KindAlbum {
+		discs = newDiscLayout(tracks)
+	}
 
 	if d.kind != deezer.KindTrack {
 		fmt.Printf("%s\n\nStarting download...\n\n", resourceInfo(resource))
@@ -144,7 +152,7 @@ func (d *Downloader) downloadAllTracks(ctx context.Context, resource deezer.Reso
 		}
 
 		sp := progress.startDownload(i, track)
-		result := d.downloadTrack(ctx, resource, track, opts, outputDir)
+		result := d.downloadTrack(ctx, resource, track, opts, outputDir, discs)
 		sp.Stop()
 
 		if result.err != nil && errors.Is(result.err, context.Canceled) {

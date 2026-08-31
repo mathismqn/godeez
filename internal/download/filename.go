@@ -23,15 +23,18 @@ func formatExt(format string) string {
 // current filesystem. Album downloads get a zero padded track number prefix
 // so the directory sorts in playing order; the other kinds have no meaningful
 // ordering to preserve.
-func trackFilename(track *deezer.Track, kind deezer.Kind, format string) string {
+//
+// A multi disc album is prefixed with its disc as well, since Deezer restarts
+// the track number on every disc and the second disc would otherwise reuse
+// the first disc's numbers.
+func trackFilename(track *deezer.Track, kind deezer.Kind, format string, discs discLayout) string {
 	ext := formatExt(format)
 
 	prefix := ""
 	if kind == deezer.KindAlbum {
-		if n, err := strconv.Atoi(string(track.TrackNumber)); err == nil {
-			prefix = fmt.Sprintf("%02d. ", n)
-		} else {
-			prefix = string(track.TrackNumber) + ". "
+		prefix = padNumber(string(track.TrackNumber)) + ". "
+		if discs.multiDisc() {
+			prefix = discNumber(track) + "-" + prefix
 		}
 	}
 
@@ -44,6 +47,16 @@ func trackFilename(track *deezer.Track, kind deezer.Kind, format string) string 
 	base = truncateBytes(base, 255-len(ext)-1-len("-id3v2"))
 
 	return base + "." + ext
+}
+
+// padNumber zero pads a track number to two digits, falling back to the raw
+// value when Deezer sends something that is not a number.
+func padNumber(value string) string {
+	if n, err := strconv.Atoi(value); err == nil {
+		return fmt.Sprintf("%02d", n)
+	}
+
+	return value
 }
 
 // truncateBytes shortens s to at most maxLen bytes without splitting a rune.

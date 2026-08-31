@@ -26,7 +26,8 @@ func applyID3Frames(tag *id3v2.Tag, m Metadata) {
 			year = parts[0]
 		}
 
-		addID3Text(tag, "TRCK", m.TrackNumber)
+		addID3Text(tag, "TRCK", joinTotal(m.TrackNumber, m.TrackTotal))
+		addID3Text(tag, "TPOS", joinTotal(m.DiscNumber, m.DiscTotal))
 		addID3Text(tag, "TPE2", m.Album.Artist)
 		addID3Text(tag, "TALB", m.Album.Title)
 		addID3Text(tag, "TPUB", m.Album.Label)
@@ -58,6 +59,20 @@ func applyID3Frames(tag *id3v2.Tag, m Metadata) {
 			Picture:     m.Cover,
 		})
 	}
+}
+
+// joinTotal renders a position the way ID3 wants it, "n/total", dropping the
+// total when it is unknown and the frame entirely when the position is: a
+// single disc album sends no disc number, so no TPOS is written.
+func joinTotal(n, total string) string {
+	if n == "" {
+		return ""
+	}
+	if total == "" {
+		return n
+	}
+
+	return n + "/" + total
 }
 
 func addID3Text(tag *id3v2.Tag, name, value string) {

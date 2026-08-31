@@ -29,7 +29,7 @@ import (
 // Only cancellation and a failure to produce the audio itself are fatal.
 // Everything else, including a missing cover or a quality downgrade, is
 // reported as a warning.
-func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource, track *deezer.Track, opts Options, outputDir string) downloadResult {
+func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource, track *deezer.Track, opts Options, outputDir string, discs discLayout) downloadResult {
 	media, err := d.deezerClient.FetchMedia(ctx, track, opts.sourceQuality())
 	if err != nil {
 		return downloadResult{err: fmt.Errorf("failed to fetch media: %w", err)}
@@ -65,7 +65,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 		return downloadResult{err: fmt.Errorf("failed to get media stream: %w", err)}
 	}
 
-	fileName := trackFilename(track, d.kind, outputFormat)
+	fileName := trackFilename(track, d.kind, outputFormat, discs)
 	outputPath := d.uniqueOutputPath(track.ID, filepath.Join(outputDir, fileName))
 	key := media.Key()
 
@@ -108,7 +108,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	warnings = append(warnings, metadata.warnings...)
-	warnings = append(warnings, d.finalizeDownload(resource, track, outputPath, outputFormat, metadata.genre, cover, metadata.bpmKey)...)
+	warnings = append(warnings, d.finalizeDownload(resource, track, outputPath, outputFormat, metadata.genre, cover, metadata.bpmKey, discs)...)
 
 	return downloadResult{warnings: warnings}
 }
@@ -142,10 +142,10 @@ func (d *Downloader) uniqueOutputPath(trackID, path string) string {
 // which is what the skip check later compares against. The download is
 // recorded even when tagging or hashing failed: the audio is there, and
 // refusing to record it would mean downloading it all over again next time.
-func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Track, outputPath, outputFormat, genre string, cover []byte, bpmKey bpmKey) []string {
+func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Track, outputPath, outputFormat, genre string, cover []byte, bpmKey bpmKey, discs discLayout) []string {
 	var warnings []string
 
-	if err := tag.Write(outputPath, buildTagMetadata(resource, track, cover, bpmKey, genre)); err != nil {
+	if err := tag.Write(outputPath, buildTagMetadata(resource, track, cover, bpmKey, genre, discs)); err != nil {
 		warnings = append(warnings, fmt.Sprintf("failed to add tags: %v", err))
 	}
 

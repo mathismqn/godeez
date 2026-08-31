@@ -1,13 +1,14 @@
 package download
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/mathismqn/godeez/internal/deezer"
 	"github.com/mathismqn/godeez/internal/tag"
 )
 
-func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byte, bpm bpmKey, genre string) tag.Metadata {
+func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byte, bpm bpmKey, genre string, discs discLayout) tag.Metadata {
 	m := tag.Metadata{
 		Title:       track.FullTitle(),
 		Artists:     strings.Join(track.Contributors.MainArtists, ", "),
@@ -33,6 +34,16 @@ func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byt
 			ReleaseDate:         data.PhysicalReleaseDate,
 			ProducerLine:        data.ProducerLine,
 			Copyright:           data.Copyright,
+		}
+
+		// Deezer's track number is a position within its own disc, so its
+		// total is the size of that disc rather than of the release. A single
+		// disc release has no disc position worth recording.
+		disc := discNumber(track)
+		m.TrackTotal = strconv.Itoa(discs.trackTotal(disc))
+		if discs.multiDisc() {
+			m.DiscNumber = disc
+			m.DiscTotal = strconv.Itoa(discs.discTotal())
 		}
 	}
 
