@@ -47,7 +47,7 @@ func fetchMetadata(ctx context.Context, httpClient *http.Client, track *deezer.T
 
 	if opts.BPM {
 		go func() {
-			result, err := fetchBPM(ctx, httpClient, track.Artist, track.Title, track.Duration)
+			result, err := fetchBPM(ctx, httpClient, track.Artist, track.Title, string(track.Duration))
 			bpmChan <- bpmResult{value: result, err: err}
 		}()
 	}

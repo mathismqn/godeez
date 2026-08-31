@@ -178,7 +178,7 @@ var errTrackUnavailable = errors.New("track is not available for streaming")
 func (c *Client) FetchMedia(ctx context.Context, track *Track, quality string) (*Media, error) {
 	res, err := c.fetchMediaForToken(ctx, track.TrackToken, quality)
 	if err == nil {
-		return newMedia(track.ID, res), nil
+		return newMedia(string(track.ID), res), nil
 	}
 
 	if !errors.Is(err, errTrackUnavailable) {

@@ -12,7 +12,7 @@ type Playlist struct {
 		Data struct {
 			Title    string `json:"TITLE"`
 			Creator  string `json:"PARENT_USERNAME"`
-			Duration int    `json:"DURATION"`
+			Duration Number `json:"DURATION"`
 		} `json:"DATA"`
 		Tracks struct {
 			Data []*Track `json:"data"`

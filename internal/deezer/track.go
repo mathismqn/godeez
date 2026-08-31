@@ -2,6 +2,8 @@ package deezer
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 )
 
 type Contributors struct {
@@ -26,9 +28,15 @@ func (c *Contributors) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, aux)
 }
 
-// Number is a position from the gateway, which is inconsistent about whether
-// it quotes them. A plain string field fails the whole album on the one
-// response that sends a bare number, so both forms are accepted as text.
+// Number is a numeric gateway field, which Deezer is inconsistent about
+// quoting. A plain string field fails the whole response on the one entry
+// that sends a bare number, so both forms are accepted as text. Every numeric
+// field of a gateway struct is one of these, not only the ones already seen
+// unquoted.
+//
+// An unquoted value has to be a JSON number. Its literal text is kept, which
+// preserves a personal upload's negative id; an object or a boolean fails the
+// decode rather than travelling on to be a filename or a Blowfish key.
 type Number string
 
 func (n *Number) UnmarshalJSON(data []byte) error {
@@ -47,20 +55,38 @@ func (n *Number) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
+	// The value is already known to be valid JSON, so its first byte is
+	// enough to tell a number from the kinds that are refused.
+	if c := data[0]; c != '-' && (c < '0' || c > '9') {
+		return fmt.Errorf("cannot unmarshal %s into a gateway number", data)
+	}
+
 	*n = Number(data)
 
 	return nil
 }
 
+// Int returns the number as an int, and whether it is one. Deezer omits these
+// fields often enough that callers treat a false as unknown rather than as a
+// failure.
+func (n Number) Int() (int, bool) {
+	i, err := strconv.Atoi(string(n))
+	if err != nil {
+		return 0, false
+	}
+
+	return i, true
+}
+
 type Track struct {
-	ID           string       `json:"SNG_ID"`
+	ID           Number       `json:"SNG_ID"`
 	Artist       string       `json:"ART_NAME"`
 	Title        string       `json:"SNG_TITLE"`
 	Version      string       `json:"VERSION"`
 	Cover        string       `json:"ALB_PICTURE"`
 	Contributors Contributors `json:"SNG_CONTRIBUTORS"`
-	Duration     string       `json:"DURATION"`
-	Gain         string       `json:"GAIN"`
+	Duration     Number       `json:"DURATION"`
+	Gain         Number       `json:"GAIN"`
 	ISRC         string       `json:"ISRC"`
 	TrackNumber  Number       `json:"TRACK_NUMBER"`
 	DiscNumber   Number       `json:"DISK_NUMBER"`

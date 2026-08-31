@@ -128,7 +128,7 @@ func TestLinkedStandIn(t *testing.T) {
 }
 
 func TestEmbeddedCandidates(t *testing.T) {
-	chain := func(ids ...string) *Track {
+	chain := func(ids ...Number) *Track {
 		var head *Track
 		for i := len(ids) - 1; i >= 0; i-- {
 			head = &Track{ID: ids[i], Fallback: head}
@@ -145,18 +145,18 @@ func TestEmbeddedCandidates(t *testing.T) {
 	tests := []struct {
 		name  string
 		track *Track
-		want  []string
+		want  []Number
 	}{
 		{"no fallback", &Track{ID: "a"}, nil},
-		{"one level", chain("a", "b"), []string{"b"}},
-		{"chain longer than the depth limit", chain("a", "b", "c", "d", "e"), []string{"b", "c", "d"}},
+		{"one level", chain("a", "b"), []Number{"b"}},
+		{"chain longer than the depth limit", chain("a", "b", "c", "d", "e"), []Number{"b", "c", "d"}},
 		{"self cycle", selfCycle, nil},
-		{"cycle back to the original", cycle, []string{"b"}},
+		{"cycle back to the original", cycle, []Number{"b"}},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got []string
+			var got []Number
 			for _, candidate := range embeddedCandidates(tt.track, maxFallbackDepth) {
 				got = append(got, candidate.ID)
 			}

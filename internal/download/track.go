@@ -48,7 +48,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 		return downloadResult{err: fmt.Errorf("requested quality '%s' not available", opts.Quality)}
 	}
 
-	if skipPath, skip := d.shouldSkipDownload(ctx, track.ID, outputFormat); skip {
+	if skipPath, skip := d.shouldSkipDownload(ctx, string(track.ID), outputFormat); skip {
 		return downloadResult{skipped: true, path: skipPath}
 	}
 
@@ -66,7 +66,7 @@ func (d *Downloader) downloadTrack(ctx context.Context, resource deezer.Resource
 	}
 
 	fileName := trackFilename(track, d.kind, outputFormat, discs)
-	outputPath := d.uniqueOutputPath(track.ID, filepath.Join(outputDir, fileName))
+	outputPath := d.uniqueOutputPath(string(track.ID), filepath.Join(outputDir, fileName))
 	key := media.Key()
 
 	if opts.convertsToWAV() {
@@ -155,7 +155,7 @@ func (d *Downloader) finalizeDownload(resource deezer.Resource, track *deezer.Tr
 	}
 
 	info := &store.DownloadInfo{
-		TrackID:    track.ID,
+		TrackID:    string(track.ID),
 		Quality:    outputFormat,
 		Path:       outputPath,
 		Hash:       hash,

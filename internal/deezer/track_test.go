@@ -46,7 +46,7 @@ func TestTrackUnmarshalFallback(t *testing.T) {
 	tests := []struct {
 		name string
 		data string
-		want []string
+		want []Number
 	}{
 		{
 			name: "no fallback",
@@ -56,17 +56,17 @@ func TestTrackUnmarshalFallback(t *testing.T) {
 		{
 			name: "one fallback",
 			data: `{"SNG_ID":"2358247065","FALLBACK":{"SNG_ID":"2134121047"}}`,
-			want: []string{"2134121047"},
+			want: []Number{"2134121047"},
 		},
 		{
 			name: "nested fallback",
 			data: `{"SNG_ID":"a","FALLBACK":{"SNG_ID":"b","FALLBACK":{"SNG_ID":"c"}}}`,
-			want: []string{"b", "c"},
+			want: []Number{"b", "c"},
 		},
 		{
 			name: "empty fallback object",
 			data: `{"SNG_ID":"a","FALLBACK":{}}`,
-			want: []string{""},
+			want: []Number{""},
 		},
 	}
 
@@ -77,7 +77,7 @@ func TestTrackUnmarshalFallback(t *testing.T) {
 				t.Fatalf("Unmarshal() error = %v", err)
 			}
 
-			var got []string
+			var got []Number
 			for next := track.Fallback; next != nil; next = next.Fallback {
 				got = append(got, next.ID)
 			}
@@ -100,20 +100,42 @@ func TestTrackUnmarshalFallbackToken(t *testing.T) {
 	}
 }
 
-// TestTrackPositionDecoding guards both positions against the gateway's
-// inconsistent quoting: an unquoted one used to fail the whole album rather
-// than the one field.
-func TestTrackPositionDecoding(t *testing.T) {
+// TestTrackNumberDecoding guards every field the gateway is inconsistent
+// about quoting: an unquoted one used to fail the whole response rather than
+// the one field.
+func TestTrackNumberDecoding(t *testing.T) {
 	tests := []struct {
-		name         string
-		json         string
-		wantDisc     Number
-		wantTrackNum Number
+		name string
+		json string
+		want Track
 	}{
-		{name: "quoted", json: `{"DISK_NUMBER":"2","TRACK_NUMBER":"7"}`, wantDisc: "2", wantTrackNum: "7"},
-		{name: "bare number", json: `{"DISK_NUMBER":2,"TRACK_NUMBER":7}`, wantDisc: "2", wantTrackNum: "7"},
-		{name: "null", json: `{"DISK_NUMBER":null,"TRACK_NUMBER":null}`, wantDisc: "", wantTrackNum: ""},
-		{name: "absent", json: `{}`, wantDisc: "", wantTrackNum: ""},
+		{
+			name: "quoted",
+			json: `{"SNG_ID":"2358247075","DURATION":"213","GAIN":"-11.2","TRACK_NUMBER":"7","DISK_NUMBER":"2"}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", TrackNumber: "7", DiscNumber: "2"},
+		},
+		{
+			name: "bare",
+			json: `{"SNG_ID":2358247075,"DURATION":213,"GAIN":-11.2,"TRACK_NUMBER":7,"DISK_NUMBER":2}`,
+			want: Track{ID: "2358247075", Duration: "213", Gain: "-11.2", TrackNumber: "7", DiscNumber: "2"},
+		},
+		{
+			// A personal upload's id, which is what made a whole playlist
+			// carrying one fail to decode.
+			name: "bare negative id",
+			json: `{"SNG_ID":-3002903542}`,
+			want: Track{ID: "-3002903542"},
+		},
+		{
+			name: "null",
+			json: `{"SNG_ID":null,"DURATION":null,"GAIN":null,"TRACK_NUMBER":null,"DISK_NUMBER":null}`,
+			want: Track{},
+		},
+		{
+			name: "absent",
+			json: `{}`,
+			want: Track{},
+		},
 	}
 
 	for _, tt := range tests {
@@ -122,12 +144,20 @@ func TestTrackPositionDecoding(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.json), &track); err != nil {
 				t.Fatalf("Unmarshal() error = %v", err)
 			}
-			if track.DiscNumber != tt.wantDisc {
-				t.Errorf("DiscNumber = %q, want %q", track.DiscNumber, tt.wantDisc)
-			}
-			if track.TrackNumber != tt.wantTrackNum {
-				t.Errorf("TrackNumber = %q, want %q", track.TrackNumber, tt.wantTrackNum)
+			if !reflect.DeepEqual(track, tt.want) {
+				t.Errorf("Track = %+v, want %+v", track, tt.want)
 			}
 		})
+	}
+}
+
+// TestTrackNumberRejectsNonNumbers keeps an unquoted object or boolean from
+// being stored as literal text.
+func TestTrackNumberRejectsNonNumbers(t *testing.T) {
+	for _, data := range []string{`{"SNG_ID":{}}`, `{"SNG_ID":[]}`, `{"SNG_ID":true}`} {
+		var track Track
+		if err := json.Unmarshal([]byte(data), &track); err == nil {
+			t.Errorf("Unmarshal(%s) = nil error, want a failure (ID = %q)", data, track.ID)
+		}
 	}
 }

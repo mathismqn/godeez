@@ -18,7 +18,7 @@ type Album struct {
 			Label               string `json:"LABEL_NAME"`
 			ProducerLine        string `json:"PRODUCER_LINE"`
 			Copyright           string `json:"COPYRIGHT"`
-			Duration            string `json:"DURATION"`
+			Duration            Number `json:"DURATION"`
 		} `json:"DATA"`
 		Tracks struct {
 			Data []*Track `json:"data"`

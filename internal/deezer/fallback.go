@@ -3,7 +3,6 @@ package deezer
 import (
 	"context"
 	"slices"
-	"strconv"
 	"strings"
 )
 
@@ -62,7 +61,7 @@ func (c *Client) mediaFrom(ctx context.Context, original, candidate *Track, qual
 		return nil
 	}
 
-	return newMedia(candidate.ID, res)
+	return newMedia(string(candidate.ID), res)
 }
 
 // coverCandidates returns the cover ids worth trying for track, best first:
@@ -96,7 +95,7 @@ func coverCandidates(track *Track) []string {
 // The ids it has returned are the only loop guard: a chain that loops back on
 // itself, or back to the original, ends there.
 func embeddedCandidates(track *Track, maxDepth int) []*Track {
-	seen := map[string]bool{track.ID: true}
+	seen := map[Number]bool{track.ID: true}
 
 	var candidates []*Track
 	for next := track.Fallback; next != nil && len(candidates) < maxDepth; next = next.Fallback {
@@ -137,13 +136,13 @@ func linkedStandIn(original, candidate *Track) bool {
 // the check rather than passing it, since length is the only thing separating
 // the album cut from another edit of the same song.
 func sameDuration(original, candidate *Track) bool {
-	originalDuration, err := strconv.Atoi(original.Duration)
-	if err != nil || originalDuration <= 0 {
+	originalDuration, ok := original.Duration.Int()
+	if !ok || originalDuration <= 0 {
 		return false
 	}
 
-	candidateDuration, err := strconv.Atoi(candidate.Duration)
-	if err != nil || candidateDuration <= 0 {
+	candidateDuration, ok := candidate.Duration.Int()
+	if !ok || candidateDuration <= 0 {
 		return false
 	}
 

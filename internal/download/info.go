@@ -2,7 +2,6 @@ package download
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -24,12 +23,18 @@ func resourceInfo(resource deezer.Resource) string {
 	return ""
 }
 
-func albumInfo(a *deezer.Album) string {
-	duration, err := strconv.Atoi(a.Results.Data.Duration)
-	if err != nil {
-		duration = 0
+// playtime converts a gateway duration in seconds. These banners are
+// cosmetic, so a field Deezer omitted counts as zero rather than as an error.
+func playtime(seconds deezer.Number) time.Duration {
+	n, ok := seconds.Int()
+	if !ok {
+		return 0
 	}
 
+	return time.Duration(n) * time.Second
+}
+
+func albumInfo(a *deezer.Album) string {
 	return fmt.Sprintf(
 		`================= [ Album Info ] =================
 Title:    %s
@@ -40,7 +45,7 @@ Duration: %s
 		a.Results.Data.Title,
 		a.Results.Data.Artist,
 		len(a.Results.Tracks.Data),
-		time.Duration(duration)*time.Second,
+		playtime(a.Results.Data.Duration),
 	)
 }
 
@@ -55,7 +60,7 @@ Duration: %s
 		p.Results.Data.Title,
 		p.Results.Data.Creator,
 		len(p.Results.Tracks.Data),
-		time.Duration(p.Results.Data.Duration)*time.Second,
+		playtime(p.Results.Data.Duration),
 	)
 }
 
@@ -63,11 +68,9 @@ func artistInfo(a *deezer.Artist) string {
 	tracks := a.Results.Tracks.Data
 	count := len(tracks)
 
-	totalSec := 0
+	var total time.Duration
 	for _, t := range tracks {
-		if d, err := strconv.Atoi(t.Duration); err == nil {
-			totalSec += d
-		}
+		total += playtime(t.Duration)
 	}
 
 	limit := min(3, count)
@@ -76,7 +79,7 @@ func artistInfo(a *deezer.Artist) string {
 	fmt.Fprintf(&b, "============= [ Artist Info ] =============\n")
 	fmt.Fprintf(&b, "Artist:   %s\n", a.Results.Data.Name)
 	fmt.Fprintf(&b, "Tracks:   %d\n", count)
-	fmt.Fprintf(&b, "Playtime: %s\n", time.Duration(totalSec)*time.Second)
+	fmt.Fprintf(&b, "Playtime: %s\n", total)
 	fmt.Fprintf(&b, "-------------------------------------------\n")
 	fmt.Fprintf(&b, "Top %d most popular tracks:\n", limit)
 	for i := 0; i < limit; i++ {
@@ -93,11 +96,6 @@ func singleInfo(s *deezer.Single) string {
 		return "Track: No data available"
 	}
 
-	duration, err := strconv.Atoi(s.Results.Data.Duration)
-	if err != nil {
-		duration = 0
-	}
-
 	return fmt.Sprintf(
 		`================= [ Track Info ] =================
 Title:    %s
@@ -106,6 +104,6 @@ Duration: %s
 ==================================================`,
 		s.Results.Data.FullTitle(),
 		s.Results.Data.Artist,
-		time.Duration(duration)*time.Second,
+		playtime(s.Results.Data.Duration),
 	)
 }
