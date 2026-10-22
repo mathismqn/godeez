@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-10-22
+
+### Changed
+
+- Require Go 1.26 or later to build from source.
+
+### Fixed
+
+- Tag the album, track number, release date and copyright of playlist, artist and single-track downloads, previously written only for album downloads.
+- Tag the artist of tracks for which Deezer lists no contributors.
+- Replace the tags of FLAC files Deezer serves already tagged instead of adding a second.
+
+### Security
+
+- Update dependencies, including `golang.org/x/net`, `golang.org/x/crypto`, `golang.org/x/mod` and `golang.org/x/text`, to pick up their security fixes.
+
 ## [1.5.1] - 2026-08-31
 
 ### Changed
@@ -124,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of **GoDeez** with basic Deezer album and playlist downloading capabilities.
 
+[1.5.2]: https://github.com/mathismqn/godeez/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/mathismqn/godeez/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/mathismqn/godeez/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/mathismqn/godeez/compare/v1.3.0...v1.4.0

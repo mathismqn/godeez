@@ -37,8 +37,8 @@ Example (Linux/macOS):
 
 ```bash
 # Make it executable and move it to /usr/local/bin for access from anywhere
-chmod +x godeez_1.5.1_linux_amd64
-mv godeez_1.5.1_linux_amd64 /usr/local/bin/godeez
+chmod +x godeez_1.5.2_linux_amd64
+mv godeez_1.5.2_linux_amd64 /usr/local/bin/godeez
 ```
 
 Each release also includes a `checksums.txt`, so you can verify your download:
