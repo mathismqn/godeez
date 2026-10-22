@@ -2,6 +2,7 @@ package tag
 
 import (
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/go-flac/flacpicture/v2"
@@ -17,6 +18,8 @@ type flacTagger struct {
 }
 
 func (t *flacTagger) write(m Metadata) error {
+	t.pruneComments()
+
 	if m.Album != nil {
 		date := m.Album.ReleaseDate
 		if parts := strings.Split(date, "-"); len(parts) == 3 {
@@ -72,17 +75,32 @@ func (t *flacTagger) write(m Metadata) error {
 	return os.Rename(tmpPath, t.path)
 }
 
-// addTag appends a Vorbis comment. Vorbis allows repeated keys, so this adds
-// to whatever the file already had rather than replacing it; re-tagging a
-// file that was already tagged would therefore duplicate entries. That does
-// not arise in practice because godeez only tags files it just downloaded.
+// pruneComments drops the comments that say nothing, such as the "ARTIST="
+// or "COPYRIGHT=" some Deezer flac files arrive with.
+func (t *flacTagger) pruneComments() {
+	t.cmts.Comments = slices.DeleteFunc(t.cmts.Comments, func(comment string) bool {
+		name, value, _ := strings.Cut(comment, "=")
+		return name == "" || value == ""
+	})
+}
+
+// addTag sets a Vorbis comment, replacing whatever the file had under that
+// name: some flac files arrive from Deezer already tagged, and a second copy
+// would leave readers to pick between Deezer's value and ours. Names are
+// matched case insensitively, as Vorbis compares them that way.
 //
 // The key is written twice for the musical key: KEY is the common spelling
 // and INITIALKEY is what several DJ applications look for.
 func (t *flacTagger) addTag(name, value string) {
-	if value != "" {
-		t.cmts.Add(name, value)
+	if value == "" {
+		return
 	}
+
+	t.cmts.Comments = slices.DeleteFunc(t.cmts.Comments, func(comment string) bool {
+		existing, _, _ := strings.Cut(comment, "=")
+		return strings.EqualFold(existing, name)
+	})
+	t.cmts.Add(name, value)
 }
 
 func extractFLACComment(file *flac.File) (*flacvorbis.MetaDataBlockVorbisComment, int) {
