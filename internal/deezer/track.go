@@ -79,11 +79,19 @@ func (n Number) Int() (int, bool) {
 }
 
 type Track struct {
-	ID           Number       `json:"SNG_ID"`
-	Artist       string       `json:"ART_NAME"`
-	Title        string       `json:"SNG_TITLE"`
-	Version      string       `json:"VERSION"`
-	Cover        string       `json:"ALB_PICTURE"`
+	ID         Number `json:"SNG_ID"`
+	Artist     string `json:"ART_NAME"`
+	Title      string `json:"SNG_TITLE"`
+	Version    string `json:"VERSION"`
+	Cover      string `json:"ALB_PICTURE"`
+	AlbumTitle string `json:"ALB_TITLE"`
+
+	// Release details the gateway attaches to a track as well as to its
+	// album. Playlist and artist entries leave them out, so an empty value
+	// is normal rather than an error.
+	PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
+	Copyright           string `json:"COPYRIGHT"`
+
 	Contributors Contributors `json:"SNG_CONTRIBUTORS"`
 	Duration     Number       `json:"DURATION"`
 	Gain         Number       `json:"GAIN"`

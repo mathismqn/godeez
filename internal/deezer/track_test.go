@@ -162,6 +162,21 @@ func TestTrackNumberRejectsNonNumbers(t *testing.T) {
 	}
 }
 
+// TestAlbumFields decodes the album details the tagger reads off a track
+// entry.
+func TestAlbumFields(t *testing.T) {
+	var track Track
+	data := `{"ALB_TITLE":"The Album","PHYSICAL_RELEASE_DATE":"2020-05-01","COPYRIGHT":"(C) 2020"}`
+	if err := json.Unmarshal([]byte(data), &track); err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+
+	want := Track{AlbumTitle: "The Album", PhysicalReleaseDate: "2020-05-01", Copyright: "(C) 2020"}
+	if !reflect.DeepEqual(track, want) {
+		t.Errorf("Track = %+v, want %+v", track, want)
+	}
+}
+
 // TestArtistNames pins the fallback that keeps the artist tag from going
 // missing when the contributor list is empty.
 func TestArtistNames(t *testing.T) {

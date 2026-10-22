@@ -19,7 +19,8 @@ import (
 )
 
 // AlbumMetadata is the subset of tags that only make sense for a track that
-// belongs to an album. It is nil on a standalone single.
+// belongs to an album. It is nil only when Deezer sent no album for the
+// track, so the taggers skip the album frames rather than write blanks.
 type AlbumMetadata struct {
 	Artist              string
 	Title               string
