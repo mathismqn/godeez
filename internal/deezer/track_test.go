@@ -162,6 +162,40 @@ func TestTrackNumberRejectsNonNumbers(t *testing.T) {
 	}
 }
 
+// TestArtistNames pins the fallback that keeps the artist tag from going
+// missing when the contributor list is empty.
+func TestArtistNames(t *testing.T) {
+	tests := []struct {
+		name  string
+		track Track
+		want  []string
+	}{
+		{
+			name:  "contributors",
+			track: Track{Artist: "Lead", Contributors: Contributors{MainArtists: []string{"Lead", "Guest"}}},
+			want:  []string{"Lead", "Guest"},
+		},
+		{
+			name:  "empty contributor list",
+			track: Track{Artist: "Lead", Contributors: Contributors{MainArtists: []string{}}},
+			want:  []string{"Lead"},
+		},
+		{
+			name:  "nothing to credit",
+			track: Track{},
+			want:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.track.ArtistNames(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ArtistNames() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 // TestIsPersonalUpload works on values: how TYPE itself arrives is already
 // covered by TestTrackNumberDecoding.
 func TestIsPersonalUpload(t *testing.T) {

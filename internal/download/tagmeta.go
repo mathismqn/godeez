@@ -11,7 +11,7 @@ import (
 func buildTagMetadata(resource deezer.Resource, track *deezer.Track, cover []byte, bpm bpmKey, genre string, discs discLayout) tag.Metadata {
 	m := tag.Metadata{
 		Title:       track.FullTitle(),
-		Artists:     strings.Join(track.Contributors.MainArtists, ", "),
+		Artists:     strings.Join(track.ArtistNames(), ", "),
 		Composers:   strings.Join(track.Contributors.Composers, ", "),
 		Lyricists:   strings.Join(track.Contributors.Authors, ", "),
 		Genre:       genre,

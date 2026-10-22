@@ -109,6 +109,20 @@ func (t *Track) FullTitle() string {
 	return t.Title
 }
 
+// ArtistNames is the set of performers to credit for the track: the main
+// artists Deezer lists as contributors, or ART_NAME when that list is empty,
+// as it is on album pages from the older catalogue.
+func (t *Track) ArtistNames() []string {
+	if len(t.Contributors.MainArtists) > 0 {
+		return t.Contributors.MainArtists
+	}
+	if t.Artist != "" {
+		return []string{t.Artist}
+	}
+
+	return nil
+}
+
 // IsPersonalUpload reports whether this entry is a file the playlist owner
 // uploaded rather than a track from Deezer's catalogue. Deezer marks those
 // with TYPE 1 and serves them with no streaming rights at all.
