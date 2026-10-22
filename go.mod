@@ -2,6 +2,8 @@ module github.com/mathismqn/godeez
 
 go 1.26.0
 
+toolchain go1.26.10
+
 require (
 	github.com/mewkiz/flac v1.0.14
 	github.com/spf13/cobra v1.10.2
